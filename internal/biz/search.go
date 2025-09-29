@@ -54,19 +54,21 @@ func NewSearchUsecase(repo SearchRepo, logger log.Logger) *SearchUsecase {
 
 // SearchParams 搜索参数集合（与 proto 对齐，部分暂未使用）。
 type SearchParams struct {
-	Q                string  // 查询关键字
-	CountryCodes     string  // 国家代码（逗号分隔）
-	Limit            int     // 返回条数上限
-	Offset           int     // 偏移量
-	AddressDetails   bool    // 是否返回地址明细
-	AcceptLanguage   string  // 语言偏好，如 "zh,en"
-	FeatureType      string  // 类型过滤（class/type）
-	Dedupe           bool    // 结果去重
-	Bounded          bool    // 是否限制在视窗内
-	PolygonGeoJSON   bool    // 是否返回多边形 GeoJSON
-	PolygonThreshold float64 // 多边形简化阈值
-	ExtraTags        bool    // 返回 extratags
-	NameDetails      bool    // 返回 namedetails
+	Q                string   // 查询关键字
+	CountryCodes     string   // 国家代码（逗号分隔）
+	Limit            int      // 返回条数上限
+	Offset           int      // 偏移量
+	AddressDetails   bool     // 是否返回地址明细
+	AcceptLanguage   string   // 语言偏好，如 "zh,en"
+	FeatureType      string   // 类型过滤（class/type）
+	Dedupe           bool     // 结果去重
+	Bounded          bool     // 是否限制在视窗内
+	PolygonGeoJSON   bool     // 是否返回多边形 GeoJSON
+	PolygonThreshold float64  // 多边形简化阈值
+	ExtraTags        bool     // 返回 extratags
+	NameDetails      bool     // 返回 namedetails
+	ExcludePlaceIDs  []int64  // 排除的 place_id 列表
+	Layers           []string // layer 过滤：address, poi, railway, natural, manmade
 	// 视窗参数
 	ViewBoxLeft   float64 // 视窗左（最小经度）
 	ViewBoxTop    float64 // 视窗上（最大纬度）
@@ -76,15 +78,16 @@ type SearchParams struct {
 
 // ReverseParams 逆地理参数。
 type ReverseParams struct {
-	Lat              float64 // 纬度
-	Lon              float64 // 经度
-	Zoom             int     // 缩放级别
-	AddressDetails   bool    // 是否返回地址明细
-	AcceptLanguage   string  // 语言偏好
-	PolygonGeoJSON   bool    // 是否返回多边形 GeoJSON
-	PolygonThreshold float64 // 多边形简化阈值
-	ExtraTags        bool    // 返回 extratags
-	NameDetails      bool    // 返回 namedetails
+	Lat              float64  // 纬度
+	Lon              float64  // 经度
+	Zoom             int      // 缩放级别
+	AddressDetails   bool     // 是否返回地址明细
+	AcceptLanguage   string   // 语言偏好
+	PolygonGeoJSON   bool     // 是否返回多边形 GeoJSON
+	PolygonThreshold float64  // 多边形简化阈值
+	ExtraTags        bool     // 返回 extratags
+	NameDetails      bool     // 返回 namedetails
+	Layers           []string // layer 过滤
 }
 
 // LookupParams 查找参数。

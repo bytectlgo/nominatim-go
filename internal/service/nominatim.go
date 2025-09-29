@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NominatimService 实现 RPC 与 HTTP 入口，调用 biz 层。
@@ -41,6 +42,8 @@ func (s *NominatimService) Search(ctx context.Context, req *v1.SearchRequest) (*
 		PolygonThreshold: req.GetPolygonThreshold(),
 		ExtraTags:        req.GetExtratags(),
 		NameDetails:      req.GetNamedetails(),
+		ExcludePlaceIDs:  req.GetExcludePlaceIds(),
+		Layers:           splitCSV(req.GetLayer()),
 		ViewBoxLeft:      req.GetViewbox().GetLeft(),
 		ViewBoxTop:       req.GetViewbox().GetTop(),
 		ViewBoxRight:     req.GetViewbox().GetRight(),
@@ -67,6 +70,7 @@ func (s *NominatimService) Reverse(ctx context.Context, req *v1.ReverseRequest) 
 		PolygonThreshold: req.GetPolygonThreshold(),
 		ExtraTags:        req.GetExtratags(),
 		NameDetails:      req.GetNamedetails(),
+		Layers:           splitCSV(req.GetLayer()),
 	})
 	if err != nil {
 		return nil, err
@@ -108,6 +112,37 @@ func (s *NominatimService) Status(ctx context.Context, _ *v1.StatusRequest) (*v1
 		}
 	}
 	return &v1.StatusResponse{Version: "dev", DbStatus: dbStatus, Uptime: uptime}, nil
+}
+
+func (s *NominatimService) Details(ctx context.Context, req *v1.DetailsRequest) (*v1.DetailsResponse, error) {
+	id := strings.TrimSpace(req.GetOsmId())
+	if id == "" {
+		return &v1.DetailsResponse{}, nil
+	}
+	res, err := s.search.Lookup(ctx, biz.LookupParams{
+		OSMIDs:           []string{id},
+		AddressDetails:   req.GetAddressdetails(),
+		AcceptLanguage:   req.GetAcceptLanguage(),
+		PolygonGeoJSON:   true,
+		PolygonThreshold: 0,
+		ExtraTags:        true,
+		NameDetails:      true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(res) == 0 {
+		return &v1.DetailsResponse{}, nil
+	}
+	return &v1.DetailsResponse{Result: mapPlaceWithLocale(res[0], req.GetAcceptLanguage())}, nil
+}
+
+func (s *NominatimService) Deletable(ctx context.Context, _ *emptypb.Empty) (*v1.DeletableResponse, error) {
+	return &v1.DeletableResponse{PlaceIds: []int64{}}, nil
+}
+
+func (s *NominatimService) Polygons(ctx context.Context, _ *emptypb.Empty) (*v1.PolygonsResponse, error) {
+	return &v1.PolygonsResponse{PlaceIds: []int64{}}, nil
 }
 
 func mapPlaceWithLocale(it *biz.SearchPlace, acceptLanguage string) *v1.Place {
@@ -172,4 +207,22 @@ func parseAcceptLanguages(s string) []string {
 		langs = append(langs, p)
 	}
 	return langs
+}
+
+func splitCSV(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

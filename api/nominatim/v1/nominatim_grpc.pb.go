@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,10 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NominatimService_Search_FullMethodName  = "/nominatim.v1.NominatimService/Search"
-	NominatimService_Reverse_FullMethodName = "/nominatim.v1.NominatimService/Reverse"
-	NominatimService_Lookup_FullMethodName  = "/nominatim.v1.NominatimService/Lookup"
-	NominatimService_Status_FullMethodName  = "/nominatim.v1.NominatimService/Status"
+	NominatimService_Search_FullMethodName    = "/nominatim.v1.NominatimService/Search"
+	NominatimService_Reverse_FullMethodName   = "/nominatim.v1.NominatimService/Reverse"
+	NominatimService_Lookup_FullMethodName    = "/nominatim.v1.NominatimService/Lookup"
+	NominatimService_Status_FullMethodName    = "/nominatim.v1.NominatimService/Status"
+	NominatimService_Details_FullMethodName   = "/nominatim.v1.NominatimService/Details"
+	NominatimService_Deletable_FullMethodName = "/nominatim.v1.NominatimService/Deletable"
+	NominatimService_Polygons_FullMethodName  = "/nominatim.v1.NominatimService/Polygons"
 )
 
 // NominatimServiceClient is the client API for NominatimService service.
@@ -39,6 +43,12 @@ type NominatimServiceClient interface {
 	Lookup(ctx context.Context, in *LookupRequest, opts ...grpc.CallOption) (*LookupResponse, error)
 	// 服务状态
 	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	// 对象详情（调试用）
+	Details(ctx context.Context, in *DetailsRequest, opts ...grpc.CallOption) (*DetailsResponse, error)
+	// 可删除对象列表（维护用途）
+	Deletable(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DeletableResponse, error)
+	// 问题多边形列表（维护用途）
+	Polygons(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PolygonsResponse, error)
 }
 
 type nominatimServiceClient struct {
@@ -89,6 +99,36 @@ func (c *nominatimServiceClient) Status(ctx context.Context, in *StatusRequest, 
 	return out, nil
 }
 
+func (c *nominatimServiceClient) Details(ctx context.Context, in *DetailsRequest, opts ...grpc.CallOption) (*DetailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DetailsResponse)
+	err := c.cc.Invoke(ctx, NominatimService_Details_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nominatimServiceClient) Deletable(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DeletableResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeletableResponse)
+	err := c.cc.Invoke(ctx, NominatimService_Deletable_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nominatimServiceClient) Polygons(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PolygonsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PolygonsResponse)
+	err := c.cc.Invoke(ctx, NominatimService_Polygons_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NominatimServiceServer is the server API for NominatimService service.
 // All implementations must embed UnimplementedNominatimServiceServer
 // for forward compatibility.
@@ -103,6 +143,12 @@ type NominatimServiceServer interface {
 	Lookup(context.Context, *LookupRequest) (*LookupResponse, error)
 	// 服务状态
 	Status(context.Context, *StatusRequest) (*StatusResponse, error)
+	// 对象详情（调试用）
+	Details(context.Context, *DetailsRequest) (*DetailsResponse, error)
+	// 可删除对象列表（维护用途）
+	Deletable(context.Context, *emptypb.Empty) (*DeletableResponse, error)
+	// 问题多边形列表（维护用途）
+	Polygons(context.Context, *emptypb.Empty) (*PolygonsResponse, error)
 	mustEmbedUnimplementedNominatimServiceServer()
 }
 
@@ -124,6 +170,15 @@ func (UnimplementedNominatimServiceServer) Lookup(context.Context, *LookupReques
 }
 func (UnimplementedNominatimServiceServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
+func (UnimplementedNominatimServiceServer) Details(context.Context, *DetailsRequest) (*DetailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Details not implemented")
+}
+func (UnimplementedNominatimServiceServer) Deletable(context.Context, *emptypb.Empty) (*DeletableResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deletable not implemented")
+}
+func (UnimplementedNominatimServiceServer) Polygons(context.Context, *emptypb.Empty) (*PolygonsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Polygons not implemented")
 }
 func (UnimplementedNominatimServiceServer) mustEmbedUnimplementedNominatimServiceServer() {}
 func (UnimplementedNominatimServiceServer) testEmbeddedByValue()                          {}
@@ -218,6 +273,60 @@ func _NominatimService_Status_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NominatimService_Details_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DetailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NominatimServiceServer).Details(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NominatimService_Details_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NominatimServiceServer).Details(ctx, req.(*DetailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NominatimService_Deletable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NominatimServiceServer).Deletable(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NominatimService_Deletable_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NominatimServiceServer).Deletable(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NominatimService_Polygons_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NominatimServiceServer).Polygons(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NominatimService_Polygons_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NominatimServiceServer).Polygons(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NominatimService_ServiceDesc is the grpc.ServiceDesc for NominatimService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -240,6 +349,18 @@ var NominatimService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Status",
 			Handler:    _NominatimService_Status_Handler,
+		},
+		{
+			MethodName: "Details",
+			Handler:    _NominatimService_Details_Handler,
+		},
+		{
+			MethodName: "Deletable",
+			Handler:    _NominatimService_Deletable_Handler,
+		},
+		{
+			MethodName: "Polygons",
+			Handler:    _NominatimService_Polygons_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

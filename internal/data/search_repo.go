@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"math"
 	"strconv"
 	"strings"
 
@@ -42,7 +43,11 @@ func (r *searchRepo) SearchPlaces(ctx context.Context, p biz.SearchParams) ([]*b
 
 	geoJSONSelect := "''"
 	if p.PolygonGeoJSON {
-		geoJSONSelect = "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
+		if p.PolygonThreshold > 0 {
+			geoJSONSelect = "COALESCE(ST_AsGeoJSON(ST_Simplify(polygon, " + strconv.FormatFloat(p.PolygonThreshold, 'f', -1, 64) + "), 6)::text, '')"
+		} else {
+			geoJSONSelect = "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
+		}
 	}
 
 	// DISTINCT ON 去重设置
@@ -93,15 +98,67 @@ WHERE (name ? 'name') AND (name->'name' ILIKE $1)
 			args = append(args, typeVal)
 			argIdx++
 		} else {
-			base += " AND (class = $" + strconv.Itoa(argIdx) + " OR type = $" + strconv.Itoa(argIdx) + ")"
-			args = append(args, ft)
-			argIdx++
+			// 对齐 v1 API：country/state/city/settlement 映射 rank_address 范围
+			minRank, maxRank := mapFeatureTypeToRankRange(ft)
+			if minRank > 0 || maxRank < math.MaxInt32 {
+				base += " AND rank_address BETWEEN $" + strconv.Itoa(argIdx) + " AND $" + strconv.Itoa(argIdx+1)
+				args = append(args, minRank, maxRank)
+				argIdx += 2
+			} else {
+				// 回退到按 class/type 单值匹配
+				base += " AND (class = $" + strconv.Itoa(argIdx) + " OR type = $" + strconv.Itoa(argIdx) + ")"
+				args = append(args, ft)
+				argIdx++
+			}
 		}
 	}
 	if p.Bounded && (p.ViewBoxLeft != 0 || p.ViewBoxRight != 0 || p.ViewBoxTop != 0 || p.ViewBoxBottom != 0) {
 		base += " AND bbox && ST_MakeEnvelope($" + strconv.Itoa(argIdx) + ", $" + strconv.Itoa(argIdx+1) + ", $" + strconv.Itoa(argIdx+2) + ", $" + strconv.Itoa(argIdx+3) + ", 4326)"
 		args = append(args, p.ViewBoxLeft, p.ViewBoxBottom, p.ViewBoxRight, p.ViewBoxTop)
 		argIdx += 4
+	}
+	if len(p.Layers) > 0 {
+		// 简化版映射：address → place/boundary/highway/administrative；poi → amenity/shop/tourism/leisure
+		// railway/natural/manmade 分别映射到相应 class
+		classes := make(map[string]struct{})
+		for _, layer := range p.Layers {
+			switch strings.ToLower(strings.TrimSpace(layer)) {
+			case "address":
+				for _, c := range []string{"place", "boundary", "highway"} {
+					classes[c] = struct{}{}
+				}
+			case "poi":
+				for _, c := range []string{"amenity", "shop", "tourism", "leisure", "craft", "office"} {
+					classes[c] = struct{}{}
+				}
+			case "railway":
+				classes["railway"] = struct{}{}
+			case "natural":
+				classes["natural"] = struct{}{}
+				classes["waterway"] = struct{}{}
+			case "manmade", "man_made":
+				classes["man_made"] = struct{}{}
+			}
+		}
+		if len(classes) > 0 {
+			list := make([]string, 0, len(classes))
+			for c := range classes {
+				list = append(list, c)
+			}
+			base += " AND class = ANY($" + strconv.Itoa(argIdx) + ")"
+			args = append(args, pqArray(list))
+			argIdx++
+		}
+	}
+	if len(p.ExcludePlaceIDs) > 0 {
+		base += " AND place_id <> ALL($" + strconv.Itoa(argIdx) + ")"
+		// PostgreSQL 数组：使用自定义 pqArrayInt64
+		baseArgs := make([]string, 0, len(p.ExcludePlaceIDs))
+		for _, id := range p.ExcludePlaceIDs {
+			baseArgs = append(baseArgs, strconv.FormatInt(id, 10))
+		}
+		args = append(args, pqArray(baseArgs))
+		argIdx++
 	}
 	base += " ORDER BY " + orderPrefix + "importance DESC NULLS LAST, place_id DESC LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
 	args = append(args, p.Limit, p.Offset)
@@ -159,9 +216,15 @@ func (r *searchRepo) ReversePlace(ctx context.Context, p biz.ReverseParams) (*bi
 
 	geoJSONSelect := "''"
 	if p.PolygonGeoJSON {
-		geoJSONSelect = "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
+		if p.PolygonThreshold > 0 {
+			geoJSONSelect = "COALESCE(ST_AsGeoJSON(ST_Simplify(polygon, " + strconv.FormatFloat(p.PolygonThreshold, 'f', -1, 64) + "), 6)::text, '')"
+		} else {
+			geoJSONSelect = "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
+		}
 	}
 
+	// 将 zoom 转换为 rank 上限，近似：对齐 v1 的 helpers.zoom_to_rank
+	maxRank := zoomToMaxRank(p.Zoom)
 	q := `
 SELECT place_id, osm_id, osm_type, class, type,
        COALESCE(name->'name','') AS name,
@@ -176,9 +239,44 @@ SELECT place_id, osm_id, osm_type, class, type,
        COALESCE(hstore_to_json(extratags)::text, '{}') AS extratags_json,
        ` + geoJSONSelect + ` AS polygon_geojson
 FROM placex
+WHERE rank_address <= $3`
+
+	args := []any{p.Lon, p.Lat, maxRank}
+	if len(p.Layers) > 0 {
+		classes := make(map[string]struct{})
+		for _, layer := range p.Layers {
+			switch strings.ToLower(strings.TrimSpace(layer)) {
+			case "address":
+				for _, c := range []string{"place", "boundary", "highway"} {
+					classes[c] = struct{}{}
+				}
+			case "poi":
+				for _, c := range []string{"amenity", "shop", "tourism", "leisure", "craft", "office"} {
+					classes[c] = struct{}{}
+				}
+			case "railway":
+				classes["railway"] = struct{}{}
+			case "natural":
+				classes["natural"] = struct{}{}
+				classes["waterway"] = struct{}{}
+			case "manmade", "man_made":
+				classes["man_made"] = struct{}{}
+			}
+		}
+		if len(classes) > 0 {
+			list := make([]string, 0, len(classes))
+			for c := range classes {
+				list = append(list, c)
+			}
+			q += " AND class = ANY($4)"
+			args = append(args, pqArray(list))
+		}
+	}
+	q += `
 ORDER BY centroid <-> ST_SetSRID(ST_Point($1,$2), 4326)
 LIMIT 1`
-	row := db.QueryRowContext(ctx, q, p.Lon, p.Lat)
+
+	row := db.QueryRowContext(ctx, q, args...)
 	var it biz.SearchPlace
 	var osmType string
 	var nameJSON, extratagsJSON, poly string
@@ -250,6 +348,11 @@ func (r *searchRepo) LookupPlaces(ctx context.Context, p biz.LookupParams) ([]*b
 		return []*biz.SearchPlace{}, nil
 	}
 
+	geoJSONSelect := "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
+	if p.PolygonGeoJSON && p.PolygonThreshold > 0 {
+		geoJSONSelect = "COALESCE(ST_AsGeoJSON(ST_Simplify(polygon, " + strconv.FormatFloat(p.PolygonThreshold, 'f', -1, 64) + "), 6)::text, '')"
+	}
+
 	q := `
 SELECT place_id, osm_id, osm_type, class, type,
        COALESCE(name->'name','') AS name,
@@ -262,7 +365,7 @@ SELECT place_id, osm_id, osm_type, class, type,
        COALESCE(ST_XMax(bbox), 0) AS east,
        COALESCE(hstore_to_json(name)::text, '{}') AS name_json,
        COALESCE(hstore_to_json(extratags)::text, '{}') AS extratags_json,
-       ` + "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')" + ` AS polygon_geojson
+       ` + geoJSONSelect + ` AS polygon_geojson
 FROM placex
 WHERE ` + strings.Join(parts, " OR ") + `
 ORDER BY importance DESC NULLS LAST`
@@ -339,3 +442,31 @@ ORDER BY cached_rank_address ASC`
 }
 
 func pqArray(ss []string) any { return "{" + strings.Join(ss, ",") + "}" }
+
+// zoomToMaxRank 将 zoom 映射到 rank 上限，基于 0..18 的离散表。
+func zoomToMaxRank(zoom int) int {
+	table := []int{2, 2, 2, 4, 4, 8, 10, 10, 12, 12, 16, 17, 18, 19, 22, 25, 26, 27, 30}
+	if zoom < 0 {
+		zoom = 0
+	}
+	if zoom > 18 {
+		zoom = 18
+	}
+	return table[zoom]
+}
+
+// mapFeatureTypeToRankRange 映射 featureType 到 rank_address 的 [min,max]，对齐 v1。
+func mapFeatureTypeToRankRange(ft string) (int, int) {
+	switch strings.ToLower(ft) {
+	case "country":
+		return 4, 4
+	case "state":
+		return 8, 8
+	case "city":
+		return 14, 16
+	case "settlement":
+		return 8, 20
+	default:
+		return 0, int(^uint(0) >> 1)
+	}
+}

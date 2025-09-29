@@ -11,6 +11,7 @@ import (
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -277,7 +278,7 @@ type AddressRow struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// 地址组件类型（country/state/city/road/house_number 等）
 	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	// OSM admin_level 或类似等级，未知时可为 0
+	// 行政等级，未知时可为 0
 	AdminLevel uint32 `protobuf:"varint,3,opt,name=admin_level,json=adminLevel,proto3" json:"admin_level,omitempty"`
 	// 排序/重要性等级（越小越上层）
 	Rank          uint32 `protobuf:"varint,4,opt,name=rank,proto3" json:"rank,omitempty"`
@@ -547,7 +548,11 @@ type SearchRequest struct {
 	// 是否返回 extratags
 	Extratags bool `protobuf:"varint,14,opt,name=extratags,proto3" json:"extratags,omitempty"`
 	// 是否返回 namedetails
-	Namedetails   bool `protobuf:"varint,15,opt,name=namedetails,proto3" json:"namedetails,omitempty"`
+	Namedetails bool `protobuf:"varint,15,opt,name=namedetails,proto3" json:"namedetails,omitempty"`
+	// 排除的 place_id 列表（用于扩展结果时跳过已有项）
+	ExcludePlaceIds []int64 `protobuf:"varint,16,rep,packed,name=exclude_place_ids,json=excludePlaceIds,proto3" json:"exclude_place_ids,omitempty"`
+	// layer 过滤（逗号分隔：address,poi,railway,natural,manmade）
+	Layer         string `protobuf:"bytes,17,opt,name=layer,proto3" json:"layer,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -687,6 +692,20 @@ func (x *SearchRequest) GetNamedetails() bool {
 	return false
 }
 
+func (x *SearchRequest) GetExcludePlaceIds() []int64 {
+	if x != nil {
+		return x.ExcludePlaceIds
+	}
+	return nil
+}
+
+func (x *SearchRequest) GetLayer() string {
+	if x != nil {
+		return x.Layer
+	}
+	return ""
+}
+
 // /search 响应
 type SearchResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -755,7 +774,9 @@ type ReverseRequest struct {
 	// 是否返回 extratags
 	Extratags bool `protobuf:"varint,9,opt,name=extratags,proto3" json:"extratags,omitempty"`
 	// 是否返回 namedetails
-	Namedetails   bool `protobuf:"varint,10,opt,name=namedetails,proto3" json:"namedetails,omitempty"`
+	Namedetails bool `protobuf:"varint,10,opt,name=namedetails,proto3" json:"namedetails,omitempty"`
+	// layer 过滤（逗号分隔：address,poi,railway,natural,manmade）
+	Layer         string `protobuf:"bytes,11,opt,name=layer,proto3" json:"layer,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -858,6 +879,13 @@ func (x *ReverseRequest) GetNamedetails() bool {
 		return x.Namedetails
 	}
 	return false
+}
+
+func (x *ReverseRequest) GetLayer() string {
+	if x != nil {
+		return x.Layer
+	}
+	return ""
 }
 
 // /reverse 响应
@@ -1162,11 +1190,213 @@ func (x *StatusResponse) GetUptime() string {
 	return ""
 }
 
+// /details 请求
+type DetailsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// OSM 对象 ID（形如：N123/W456/R789）
+	OsmId string `protobuf:"bytes,1,opt,name=osm_id,json=osmId,proto3" json:"osm_id,omitempty"`
+	// 是否返回地址行明细
+	Addressdetails bool `protobuf:"varint,2,opt,name=addressdetails,proto3" json:"addressdetails,omitempty"`
+	// 接受的语言（如："zh,en"）
+	AcceptLanguage string `protobuf:"bytes,3,opt,name=accept_language,json=acceptLanguage,proto3" json:"accept_language,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DetailsRequest) Reset() {
+	*x = DetailsRequest{}
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DetailsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DetailsRequest) ProtoMessage() {}
+
+func (x *DetailsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DetailsRequest.ProtoReflect.Descriptor instead.
+func (*DetailsRequest) Descriptor() ([]byte, []int) {
+	return file_nominatim_v1_nominatim_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DetailsRequest) GetOsmId() string {
+	if x != nil {
+		return x.OsmId
+	}
+	return ""
+}
+
+func (x *DetailsRequest) GetAddressdetails() bool {
+	if x != nil {
+		return x.Addressdetails
+	}
+	return false
+}
+
+func (x *DetailsRequest) GetAcceptLanguage() string {
+	if x != nil {
+		return x.AcceptLanguage
+	}
+	return ""
+}
+
+// /details 响应
+type DetailsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 对象详情
+	Result        *Place `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DetailsResponse) Reset() {
+	*x = DetailsResponse{}
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DetailsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DetailsResponse) ProtoMessage() {}
+
+func (x *DetailsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DetailsResponse.ProtoReflect.Descriptor instead.
+func (*DetailsResponse) Descriptor() ([]byte, []int) {
+	return file_nominatim_v1_nominatim_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DetailsResponse) GetResult() *Place {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+// /deletable 响应（占位）
+type DeletableResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 可删除对象列表示例（返回 place_id 列表）
+	PlaceIds      []int64 `protobuf:"varint,1,rep,packed,name=place_ids,json=placeIds,proto3" json:"place_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletableResponse) Reset() {
+	*x = DeletableResponse{}
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletableResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletableResponse) ProtoMessage() {}
+
+func (x *DeletableResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletableResponse.ProtoReflect.Descriptor instead.
+func (*DeletableResponse) Descriptor() ([]byte, []int) {
+	return file_nominatim_v1_nominatim_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DeletableResponse) GetPlaceIds() []int64 {
+	if x != nil {
+		return x.PlaceIds
+	}
+	return nil
+}
+
+// /polygons 响应（占位）
+type PolygonsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 问题多边形的 place_id 列表
+	PlaceIds      []int64 `protobuf:"varint,1,rep,packed,name=place_ids,json=placeIds,proto3" json:"place_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PolygonsResponse) Reset() {
+	*x = PolygonsResponse{}
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolygonsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolygonsResponse) ProtoMessage() {}
+
+func (x *PolygonsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_nominatim_v1_nominatim_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolygonsResponse.ProtoReflect.Descriptor instead.
+func (*PolygonsResponse) Descriptor() ([]byte, []int) {
+	return file_nominatim_v1_nominatim_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *PolygonsResponse) GetPlaceIds() []int64 {
+	if x != nil {
+		return x.PlaceIds
+	}
+	return nil
+}
+
 var File_nominatim_v1_nominatim_proto protoreflect.FileDescriptor
 
 const file_nominatim_v1_nominatim_proto_rawDesc = "" +
 	"\n" +
-	"\x1cnominatim/v1/nominatim.proto\x12\fnominatim.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bbuf/validate/validate.proto\"]\n" +
+	"\x1cnominatim/v1/nominatim.proto\x12\fnominatim.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1bgoogle/protobuf/empty.proto\"]\n" +
 	"\x05Point\x12)\n" +
 	"\x03lat\x18\x01 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x80V@)\x00\x00\x00\x00\x00\x80V\xc0R\x03lat\x12)\n" +
 	"\x03lon\x18\x02 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x80f@)\x00\x00\x00\x00\x00\x80f\xc0R\x03lon\"\xc1\x01\n" +
@@ -1213,7 +1443,7 @@ const file_nominatim_v1_nominatim_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10NamedetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa0\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\x04\n" +
 	"\rSearchRequest\x12\f\n" +
 	"\x01q\x18\x01 \x01(\tR\x01q\x12\"\n" +
 	"\fcountrycodes\x18\x02 \x01(\tR\fcountrycodes\x12\x1f\n" +
@@ -1230,9 +1460,11 @@ const file_nominatim_v1_nominatim_proto_rawDesc = "" +
 	"\x0fpolygon_geojson\x18\f \x01(\bR\x0epolygonGeojson\x12+\n" +
 	"\x11polygon_threshold\x18\r \x01(\x01R\x10polygonThreshold\x12\x1c\n" +
 	"\textratags\x18\x0e \x01(\bR\textratags\x12 \n" +
-	"\vnamedetails\x18\x0f \x01(\bR\vnamedetails\"?\n" +
+	"\vnamedetails\x18\x0f \x01(\bR\vnamedetails\x12*\n" +
+	"\x11exclude_place_ids\x18\x10 \x03(\x03R\x0fexcludePlaceIds\x12\x14\n" +
+	"\x05layer\x18\x11 \x01(\tR\x05layer\"?\n" +
 	"\x0eSearchResponse\x12-\n" +
-	"\aresults\x18\x01 \x03(\v2\x13.nominatim.v1.PlaceR\aresults\"\x9d\x03\n" +
+	"\aresults\x18\x01 \x03(\v2\x13.nominatim.v1.PlaceR\aresults\"\xb3\x03\n" +
 	"\x0eReverseRequest\x12)\n" +
 	"\x03lat\x18\x01 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x80V@)\x00\x00\x00\x00\x00\x80V\xc0R\x03lat\x12)\n" +
 	"\x03lon\x18\x02 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x80f@)\x00\x00\x00\x00\x00\x80f\xc0R\x03lon\x12\x1d\n" +
@@ -1244,7 +1476,8 @@ const file_nominatim_v1_nominatim_proto_rawDesc = "" +
 	"\x11polygon_threshold\x18\b \x01(\x01R\x10polygonThreshold\x12\x1c\n" +
 	"\textratags\x18\t \x01(\bR\textratags\x12 \n" +
 	"\vnamedetails\x18\n" +
-	" \x01(\bR\vnamedetails\">\n" +
+	" \x01(\bR\vnamedetails\x12\x14\n" +
+	"\x05layer\x18\v \x01(\tR\x05layer\">\n" +
 	"\x0fReverseResponse\x12+\n" +
 	"\x06result\x18\x01 \x01(\v2\x13.nominatim.v1.PlaceR\x06result\"\xca\x02\n" +
 	"\rLookupRequest\x12!\n" +
@@ -1262,13 +1495,28 @@ const file_nominatim_v1_nominatim_proto_rawDesc = "" +
 	"\x0eStatusResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1b\n" +
 	"\tdb_status\x18\x02 \x01(\tR\bdbStatus\x12\x16\n" +
-	"\x06uptime\x18\x03 \x01(\tR\x06uptime2\xee\x02\n" +
+	"\x06uptime\x18\x03 \x01(\tR\x06uptime\"\x8e\x01\n" +
+	"\x0eDetailsRequest\x12+\n" +
+	"\x06osm_id\x18\x01 \x01(\tB\x14\xbaH\x11r\x0f2\r^[NWR][0-9]+$R\x05osmId\x12&\n" +
+	"\x0eaddressdetails\x18\x02 \x01(\bR\x0eaddressdetails\x12'\n" +
+	"\x0faccept_language\x18\x03 \x01(\tR\x0eacceptLanguage\">\n" +
+	"\x0fDetailsResponse\x12+\n" +
+	"\x06result\x18\x01 \x01(\v2\x13.nominatim.v1.PlaceR\x06result\"0\n" +
+	"\x11DeletableResponse\x12\x1b\n" +
+	"\tplace_ids\x18\x01 \x03(\x03R\bplaceIds\"/\n" +
+	"\x10PolygonsResponse\x12\x1b\n" +
+	"\tplace_ids\x18\x01 \x03(\x03R\bplaceIds2\xf9\x04\n" +
 	"\x10NominatimService\x12T\n" +
 	"\x06Search\x12\x1b.nominatim.v1.SearchRequest\x1a\x1c.nominatim.v1.SearchResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/search\x12X\n" +
 	"\aReverse\x12\x1c.nominatim.v1.ReverseRequest\x1a\x1d.nominatim.v1.ReverseResponse\"\x10\x82\xd3\xe4\x93\x02\n" +
 	"\x12\b/reverse\x12T\n" +
 	"\x06Lookup\x12\x1b.nominatim.v1.LookupRequest\x1a\x1c.nominatim.v1.LookupResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/lookup\x12T\n" +
-	"\x06Status\x12\x1b.nominatim.v1.StatusRequest\x1a\x1c.nominatim.v1.StatusResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/statusB\x95\x01\n" +
+	"\x06Status\x12\x1b.nominatim.v1.StatusRequest\x1a\x1c.nominatim.v1.StatusResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/status\x12X\n" +
+	"\aDetails\x12\x1c.nominatim.v1.DetailsRequest\x1a\x1d.nominatim.v1.DetailsResponse\"\x10\x82\xd3\xe4\x93\x02\n" +
+	"\x12\b/details\x12X\n" +
+	"\tDeletable\x12\x16.google.protobuf.Empty\x1a\x1f.nominatim.v1.DeletableResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
+	"/deletable\x12U\n" +
+	"\bPolygons\x12\x16.google.protobuf.Empty\x1a\x1e.nominatim.v1.PolygonsResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/polygonsB\x95\x01\n" +
 	"\x10com.nominatim.v1B\x0eNominatimProtoP\x01Z nominatim-go/api/nominatim/v1;v1\xa2\x02\x03NXX\xaa\x02\fNominatim.V1\xca\x02\fNominatim\\V1\xe2\x02\x18Nominatim\\V1\\GPBMetadata\xea\x02\rNominatim::V1b\x06proto3"
 
 var (
@@ -1283,30 +1531,35 @@ func file_nominatim_v1_nominatim_proto_rawDescGZIP() []byte {
 	return file_nominatim_v1_nominatim_proto_rawDescData
 }
 
-var file_nominatim_v1_nominatim_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_nominatim_v1_nominatim_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_nominatim_v1_nominatim_proto_goTypes = []any{
-	(*Point)(nil),           // 0: nominatim.v1.Point
-	(*ViewBox)(nil),         // 1: nominatim.v1.ViewBox
-	(*BoundingBox)(nil),     // 2: nominatim.v1.BoundingBox
-	(*Locales)(nil),         // 3: nominatim.v1.Locales
-	(*AddressRow)(nil),      // 4: nominatim.v1.AddressRow
-	(*Place)(nil),           // 5: nominatim.v1.Place
-	(*SearchRequest)(nil),   // 6: nominatim.v1.SearchRequest
-	(*SearchResponse)(nil),  // 7: nominatim.v1.SearchResponse
-	(*ReverseRequest)(nil),  // 8: nominatim.v1.ReverseRequest
-	(*ReverseResponse)(nil), // 9: nominatim.v1.ReverseResponse
-	(*LookupRequest)(nil),   // 10: nominatim.v1.LookupRequest
-	(*LookupResponse)(nil),  // 11: nominatim.v1.LookupResponse
-	(*StatusRequest)(nil),   // 12: nominatim.v1.StatusRequest
-	(*StatusResponse)(nil),  // 13: nominatim.v1.StatusResponse
-	nil,                     // 14: nominatim.v1.Place.ExtratagsEntry
-	nil,                     // 15: nominatim.v1.Place.NamedetailsEntry
+	(*Point)(nil),             // 0: nominatim.v1.Point
+	(*ViewBox)(nil),           // 1: nominatim.v1.ViewBox
+	(*BoundingBox)(nil),       // 2: nominatim.v1.BoundingBox
+	(*Locales)(nil),           // 3: nominatim.v1.Locales
+	(*AddressRow)(nil),        // 4: nominatim.v1.AddressRow
+	(*Place)(nil),             // 5: nominatim.v1.Place
+	(*SearchRequest)(nil),     // 6: nominatim.v1.SearchRequest
+	(*SearchResponse)(nil),    // 7: nominatim.v1.SearchResponse
+	(*ReverseRequest)(nil),    // 8: nominatim.v1.ReverseRequest
+	(*ReverseResponse)(nil),   // 9: nominatim.v1.ReverseResponse
+	(*LookupRequest)(nil),     // 10: nominatim.v1.LookupRequest
+	(*LookupResponse)(nil),    // 11: nominatim.v1.LookupResponse
+	(*StatusRequest)(nil),     // 12: nominatim.v1.StatusRequest
+	(*StatusResponse)(nil),    // 13: nominatim.v1.StatusResponse
+	(*DetailsRequest)(nil),    // 14: nominatim.v1.DetailsRequest
+	(*DetailsResponse)(nil),   // 15: nominatim.v1.DetailsResponse
+	(*DeletableResponse)(nil), // 16: nominatim.v1.DeletableResponse
+	(*PolygonsResponse)(nil),  // 17: nominatim.v1.PolygonsResponse
+	nil,                       // 18: nominatim.v1.Place.ExtratagsEntry
+	nil,                       // 19: nominatim.v1.Place.NamedetailsEntry
+	(*emptypb.Empty)(nil),     // 20: google.protobuf.Empty
 }
 var file_nominatim_v1_nominatim_proto_depIdxs = []int32{
 	0,  // 0: nominatim.v1.Place.centroid:type_name -> nominatim.v1.Point
 	2,  // 1: nominatim.v1.Place.boundingbox:type_name -> nominatim.v1.BoundingBox
-	14, // 2: nominatim.v1.Place.extratags:type_name -> nominatim.v1.Place.ExtratagsEntry
-	15, // 3: nominatim.v1.Place.namedetails:type_name -> nominatim.v1.Place.NamedetailsEntry
+	18, // 2: nominatim.v1.Place.extratags:type_name -> nominatim.v1.Place.ExtratagsEntry
+	19, // 3: nominatim.v1.Place.namedetails:type_name -> nominatim.v1.Place.NamedetailsEntry
 	4,  // 4: nominatim.v1.Place.address_rows:type_name -> nominatim.v1.AddressRow
 	3,  // 5: nominatim.v1.SearchRequest.locales:type_name -> nominatim.v1.Locales
 	1,  // 6: nominatim.v1.SearchRequest.viewbox:type_name -> nominatim.v1.ViewBox
@@ -1315,19 +1568,26 @@ var file_nominatim_v1_nominatim_proto_depIdxs = []int32{
 	5,  // 9: nominatim.v1.ReverseResponse.result:type_name -> nominatim.v1.Place
 	3,  // 10: nominatim.v1.LookupRequest.locales:type_name -> nominatim.v1.Locales
 	5,  // 11: nominatim.v1.LookupResponse.results:type_name -> nominatim.v1.Place
-	6,  // 12: nominatim.v1.NominatimService.Search:input_type -> nominatim.v1.SearchRequest
-	8,  // 13: nominatim.v1.NominatimService.Reverse:input_type -> nominatim.v1.ReverseRequest
-	10, // 14: nominatim.v1.NominatimService.Lookup:input_type -> nominatim.v1.LookupRequest
-	12, // 15: nominatim.v1.NominatimService.Status:input_type -> nominatim.v1.StatusRequest
-	7,  // 16: nominatim.v1.NominatimService.Search:output_type -> nominatim.v1.SearchResponse
-	9,  // 17: nominatim.v1.NominatimService.Reverse:output_type -> nominatim.v1.ReverseResponse
-	11, // 18: nominatim.v1.NominatimService.Lookup:output_type -> nominatim.v1.LookupResponse
-	13, // 19: nominatim.v1.NominatimService.Status:output_type -> nominatim.v1.StatusResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	5,  // 12: nominatim.v1.DetailsResponse.result:type_name -> nominatim.v1.Place
+	6,  // 13: nominatim.v1.NominatimService.Search:input_type -> nominatim.v1.SearchRequest
+	8,  // 14: nominatim.v1.NominatimService.Reverse:input_type -> nominatim.v1.ReverseRequest
+	10, // 15: nominatim.v1.NominatimService.Lookup:input_type -> nominatim.v1.LookupRequest
+	12, // 16: nominatim.v1.NominatimService.Status:input_type -> nominatim.v1.StatusRequest
+	14, // 17: nominatim.v1.NominatimService.Details:input_type -> nominatim.v1.DetailsRequest
+	20, // 18: nominatim.v1.NominatimService.Deletable:input_type -> google.protobuf.Empty
+	20, // 19: nominatim.v1.NominatimService.Polygons:input_type -> google.protobuf.Empty
+	7,  // 20: nominatim.v1.NominatimService.Search:output_type -> nominatim.v1.SearchResponse
+	9,  // 21: nominatim.v1.NominatimService.Reverse:output_type -> nominatim.v1.ReverseResponse
+	11, // 22: nominatim.v1.NominatimService.Lookup:output_type -> nominatim.v1.LookupResponse
+	13, // 23: nominatim.v1.NominatimService.Status:output_type -> nominatim.v1.StatusResponse
+	15, // 24: nominatim.v1.NominatimService.Details:output_type -> nominatim.v1.DetailsResponse
+	16, // 25: nominatim.v1.NominatimService.Deletable:output_type -> nominatim.v1.DeletableResponse
+	17, // 26: nominatim.v1.NominatimService.Polygons:output_type -> nominatim.v1.PolygonsResponse
+	20, // [20:27] is the sub-list for method output_type
+	13, // [13:20] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_nominatim_v1_nominatim_proto_init() }
@@ -1341,7 +1601,7 @@ func file_nominatim_v1_nominatim_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nominatim_v1_nominatim_proto_rawDesc), len(file_nominatim_v1_nominatim_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

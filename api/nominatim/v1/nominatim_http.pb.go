@@ -10,6 +10,7 @@ import (
 	context "context"
 	http "github.com/go-kratos/kratos/v2/transport/http"
 	binding "github.com/go-kratos/kratos/v2/transport/http/binding"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,14 +20,23 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationNominatimServiceDeletable = "/nominatim.v1.NominatimService/Deletable"
+const OperationNominatimServiceDetails = "/nominatim.v1.NominatimService/Details"
 const OperationNominatimServiceLookup = "/nominatim.v1.NominatimService/Lookup"
+const OperationNominatimServicePolygons = "/nominatim.v1.NominatimService/Polygons"
 const OperationNominatimServiceReverse = "/nominatim.v1.NominatimService/Reverse"
 const OperationNominatimServiceSearch = "/nominatim.v1.NominatimService/Search"
 const OperationNominatimServiceStatus = "/nominatim.v1.NominatimService/Status"
 
 type NominatimServiceHTTPServer interface {
+	// Deletable 可删除对象列表（维护用途）
+	Deletable(context.Context, *emptypb.Empty) (*DeletableResponse, error)
+	// Details 对象详情（调试用）
+	Details(context.Context, *DetailsRequest) (*DetailsResponse, error)
 	// Lookup 依据 OSM ID 批量查询
 	Lookup(context.Context, *LookupRequest) (*LookupResponse, error)
+	// Polygons 问题多边形列表（维护用途）
+	Polygons(context.Context, *emptypb.Empty) (*PolygonsResponse, error)
 	// Reverse 逆地理编码：经纬度到地点
 	Reverse(context.Context, *ReverseRequest) (*ReverseResponse, error)
 	// Search 名称/地址/类型搜索
@@ -41,6 +51,9 @@ func RegisterNominatimServiceHTTPServer(s *http.Server, srv NominatimServiceHTTP
 	r.GET("/reverse", _NominatimService_Reverse0_HTTP_Handler(srv))
 	r.GET("/lookup", _NominatimService_Lookup0_HTTP_Handler(srv))
 	r.GET("/status", _NominatimService_Status0_HTTP_Handler(srv))
+	r.GET("/details", _NominatimService_Details0_HTTP_Handler(srv))
+	r.GET("/deletable", _NominatimService_Deletable0_HTTP_Handler(srv))
+	r.GET("/polygons", _NominatimService_Polygons0_HTTP_Handler(srv))
 }
 
 func _NominatimService_Search0_HTTP_Handler(srv NominatimServiceHTTPServer) func(ctx http.Context) error {
@@ -119,9 +132,72 @@ func _NominatimService_Status0_HTTP_Handler(srv NominatimServiceHTTPServer) func
 	}
 }
 
+func _NominatimService_Details0_HTTP_Handler(srv NominatimServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DetailsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationNominatimServiceDetails)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Details(ctx, req.(*DetailsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DetailsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _NominatimService_Deletable0_HTTP_Handler(srv NominatimServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in emptypb.Empty
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationNominatimServiceDeletable)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Deletable(ctx, req.(*emptypb.Empty))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeletableResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _NominatimService_Polygons0_HTTP_Handler(srv NominatimServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in emptypb.Empty
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationNominatimServicePolygons)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Polygons(ctx, req.(*emptypb.Empty))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*PolygonsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type NominatimServiceHTTPClient interface {
+	// Deletable 可删除对象列表（维护用途）
+	Deletable(ctx context.Context, req *emptypb.Empty, opts ...http.CallOption) (rsp *DeletableResponse, err error)
+	// Details 对象详情（调试用）
+	Details(ctx context.Context, req *DetailsRequest, opts ...http.CallOption) (rsp *DetailsResponse, err error)
 	// Lookup 依据 OSM ID 批量查询
 	Lookup(ctx context.Context, req *LookupRequest, opts ...http.CallOption) (rsp *LookupResponse, err error)
+	// Polygons 问题多边形列表（维护用途）
+	Polygons(ctx context.Context, req *emptypb.Empty, opts ...http.CallOption) (rsp *PolygonsResponse, err error)
 	// Reverse 逆地理编码：经纬度到地点
 	Reverse(ctx context.Context, req *ReverseRequest, opts ...http.CallOption) (rsp *ReverseResponse, err error)
 	// Search 名称/地址/类型搜索
@@ -138,12 +214,54 @@ func NewNominatimServiceHTTPClient(client *http.Client) NominatimServiceHTTPClie
 	return &NominatimServiceHTTPClientImpl{client}
 }
 
+// Deletable 可删除对象列表（维护用途）
+func (c *NominatimServiceHTTPClientImpl) Deletable(ctx context.Context, in *emptypb.Empty, opts ...http.CallOption) (*DeletableResponse, error) {
+	var out DeletableResponse
+	pattern := "/deletable"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationNominatimServiceDeletable))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Details 对象详情（调试用）
+func (c *NominatimServiceHTTPClientImpl) Details(ctx context.Context, in *DetailsRequest, opts ...http.CallOption) (*DetailsResponse, error) {
+	var out DetailsResponse
+	pattern := "/details"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationNominatimServiceDetails))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // Lookup 依据 OSM ID 批量查询
 func (c *NominatimServiceHTTPClientImpl) Lookup(ctx context.Context, in *LookupRequest, opts ...http.CallOption) (*LookupResponse, error) {
 	var out LookupResponse
 	pattern := "/lookup"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationNominatimServiceLookup))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Polygons 问题多边形列表（维护用途）
+func (c *NominatimServiceHTTPClientImpl) Polygons(ctx context.Context, in *emptypb.Empty, opts ...http.CallOption) (*PolygonsResponse, error) {
+	var out PolygonsResponse
+	pattern := "/polygons"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationNominatimServicePolygons))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

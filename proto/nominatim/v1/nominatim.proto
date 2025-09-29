@@ -6,6 +6,7 @@ option go_package = "nominatim-go/api/nominatim/v1;v1";
 
 import "google/api/annotations.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 
 // 基本地理坐标
 message Point {
@@ -51,7 +52,7 @@ message AddressRow {
   string name = 1 [(buf.validate.field).string = { min_len: 1 }];
   // 地址组件类型（country/state/city/road/house_number 等）
   string type = 2 [(buf.validate.field).string = { min_len: 1 }];
-  // OSM admin_level 或类似等级，未知时可为 0
+  // 行政等级，未知时可为 0
   uint32 admin_level = 3;
   // 排序/重要性等级（越小越上层）
   uint32 rank = 4;
@@ -123,6 +124,10 @@ message SearchRequest {
   bool extratags = 14;
   // 是否返回 namedetails
   bool namedetails = 15;
+  // 排除的 place_id 列表（用于扩展结果时跳过已有项）
+  repeated int64 exclude_place_ids = 16;
+  // layer 过滤（逗号分隔：address,poi,railway,natural,manmade）
+  string layer = 17;
 }
 
 // /search 响应
@@ -153,6 +158,8 @@ message ReverseRequest {
   bool extratags = 9;
   // 是否返回 namedetails
   bool namedetails = 10;
+  // layer 过滤（逗号分隔：address,poi,railway,natural,manmade）
+  string layer = 11;
 }
 
 // /reverse 响应
@@ -200,6 +207,34 @@ message StatusResponse {
   string uptime = 3;
 }
 
+// /details 请求
+message DetailsRequest {
+  // OSM 对象 ID（形如：N123/W456/R789）
+  string osm_id = 1 [(buf.validate.field).string = { pattern: "^[NWR][0-9]+$" }];
+  // 是否返回地址行明细
+  bool addressdetails = 2;
+  // 接受的语言（如："zh,en"）
+  string accept_language = 3;
+}
+
+// /details 响应
+message DetailsResponse {
+  // 对象详情
+  Place result = 1;
+}
+
+// /deletable 响应（占位）
+message DeletableResponse {
+  // 可删除对象列表示例（返回 place_id 列表）
+  repeated int64 place_ids = 1;
+}
+
+// /polygons 响应（占位）
+message PolygonsResponse {
+  // 问题多边形的 place_id 列表
+  repeated int64 place_ids = 1;
+}
+
 // Nominatim 服务定义
 service NominatimService {
   // 名称/地址/类型搜索
@@ -224,6 +259,24 @@ service NominatimService {
   rpc Status (StatusRequest) returns (StatusResponse) {
     option (google.api.http) = {
       get: "/status"
+    };
+  }
+  // 对象详情（调试用）
+  rpc Details (DetailsRequest) returns (DetailsResponse) {
+    option (google.api.http) = {
+      get: "/details"
+    };
+  }
+  // 可删除对象列表（维护用途）
+  rpc Deletable (google.protobuf.Empty) returns (DeletableResponse) {
+    option (google.api.http) = {
+      get: "/deletable"
+    };
+  }
+  // 问题多边形列表（维护用途）
+  rpc Polygons (google.protobuf.Empty) returns (PolygonsResponse) {
+    option (google.api.http) = {
+      get: "/polygons"
     };
   }
 }
