@@ -5,10 +5,13 @@ import (
 	v1 "nominatim-go/api/nominatim/v1"
 	"nominatim-go/internal/biz"
 	"nominatim-go/internal/data"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
+	kratostransport "github.com/go-kratos/kratos/v2/transport"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -21,6 +24,18 @@ type NominatimService struct {
 }
 
 var serviceStartTime = time.Now()
+var licenceText = func() string {
+	if v := strings.TrimSpace(os.Getenv("NOMINATIM_LICENCE")); v != "" {
+		return v
+	}
+	return "Data © OpenStreetMap contributors"
+}()
+var serviceVersion = func() string {
+	if v := strings.TrimSpace(os.Getenv("NOMINATIM_VERSION")); v != "" {
+		return v
+	}
+	return "dev"
+}()
 
 func NewNominatimService(logger log.Logger, search *biz.SearchUsecase, data *data.Data) *NominatimService {
 	return &NominatimService{log: log.NewHelper(logger), search: search, data: data}
@@ -28,13 +43,56 @@ func NewNominatimService(logger log.Logger, search *biz.SearchUsecase, data *dat
 
 func (s *NominatimService) Search(ctx context.Context, req *v1.SearchRequest) (*v1.SearchResponse, error) {
 	s.log.WithContext(ctx).Infof("Search q=%s", req.GetQ())
+	// 默认分页与上限
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	offset := int(req.GetOffset())
+	if offset < 0 {
+		offset = 0
+	}
+	// 兼容：若 accept_language 为空，则回退到 HTTP Header: Accept-Language
+	acceptLang := req.GetAcceptLanguage()
+	if strings.TrimSpace(acceptLang) == "" {
+		if tr, ok := kratostransport.FromServerContext(ctx); ok {
+			// 使用通用接口获取请求头
+			if headerer, hok := tr.(interface{ RequestHeader() map[string]string }); hok && headerer.RequestHeader() != nil {
+				if v, ok := headerer.RequestHeader()["Accept-Language"]; ok && v != "" {
+					acceptLang = v
+				}
+			}
+		}
+	}
+	// 兼容：解析查询参数 viewbox=left,top,right,bottom（当结构体为空时回填）
+	vleft, vtop, vright, vbottom := req.GetViewbox().GetLeft(), req.GetViewbox().GetTop(), req.GetViewbox().GetRight(), req.GetViewbox().GetBottom()
+	if vleft == 0 && vtop == 0 && vright == 0 && vbottom == 0 {
+		if tr, ok := kratostransport.FromServerContext(ctx); ok {
+			if urlGetter, uok := tr.(interface{ RequestQuery(key string) string }); uok {
+				if vb := strings.TrimSpace(urlGetter.RequestQuery("viewbox")); vb != "" {
+					parts := strings.Split(vb, ",")
+					if len(parts) == 4 {
+						vleft = parseFloatSafe(parts[0])
+						vtop = parseFloatSafe(parts[1])
+						vright = parseFloatSafe(parts[2])
+						vbottom = parseFloatSafe(parts[3])
+					}
+				}
+			}
+		}
+	}
+	// 规范化 countrycodes：去空格、小写
+	cc := strings.ToLower(strings.ReplaceAll(req.GetCountrycodes(), " ", ""))
 	items, err := s.search.Search(ctx, biz.SearchParams{
 		Q:                req.GetQ(),
-		CountryCodes:     req.GetCountrycodes(),
-		Limit:            int(req.GetLimit()),
-		Offset:           int(req.GetOffset()),
+		CountryCodes:     cc,
+		Limit:            limit,
+		Offset:           offset,
 		AddressDetails:   req.GetAddressdetails(),
-		AcceptLanguage:   req.GetAcceptLanguage(),
+		AcceptLanguage:   acceptLang,
 		FeatureType:      req.GetFeaturetype(),
 		Dedupe:           req.GetDedupe(),
 		Bounded:          req.GetBounded(),
@@ -44,10 +102,10 @@ func (s *NominatimService) Search(ctx context.Context, req *v1.SearchRequest) (*
 		NameDetails:      req.GetNamedetails(),
 		ExcludePlaceIDs:  req.GetExcludePlaceIds(),
 		Layers:           splitCSV(req.GetLayer()),
-		ViewBoxLeft:      req.GetViewbox().GetLeft(),
-		ViewBoxTop:       req.GetViewbox().GetTop(),
-		ViewBoxRight:     req.GetViewbox().GetRight(),
-		ViewBoxBottom:    req.GetViewbox().GetBottom(),
+		ViewBoxLeft:      vleft,
+		ViewBoxTop:       vtop,
+		ViewBoxRight:     vright,
+		ViewBoxBottom:    vbottom,
 	})
 	if err != nil {
 		return nil, err
@@ -111,10 +169,13 @@ func (s *NominatimService) Status(ctx context.Context, _ *v1.StatusRequest) (*v1
 			dbStatus = "unavailable"
 		}
 	}
-	return &v1.StatusResponse{Version: "dev", DbStatus: dbStatus, Uptime: uptime}, nil
+	return &v1.StatusResponse{Version: serviceVersion, DbStatus: dbStatus, Uptime: uptime}, nil
 }
 
 func (s *NominatimService) Details(ctx context.Context, req *v1.DetailsRequest) (*v1.DetailsResponse, error) {
+	if strings.TrimSpace(os.Getenv("NOMINATIM_ENABLE_DETAILS")) == "0" {
+		return &v1.DetailsResponse{}, nil
+	}
 	id := strings.TrimSpace(req.GetOsmId())
 	if id == "" {
 		return &v1.DetailsResponse{}, nil
@@ -138,11 +199,49 @@ func (s *NominatimService) Details(ctx context.Context, req *v1.DetailsRequest) 
 }
 
 func (s *NominatimService) Deletable(ctx context.Context, _ *emptypb.Empty) (*v1.DeletableResponse, error) {
-	return &v1.DeletableResponse{PlaceIds: []int64{}}, nil
+	if strings.TrimSpace(os.Getenv("NOMINATIM_ENABLE_MAINTENANCE")) == "0" {
+		return &v1.DeletableResponse{PlaceIds: []int64{}}, nil
+	}
+	// 最小实现：当使用 PostgreSQL 时，返回 placex 中 osm 更新可能导致孤立的最近修改对象（示例逻辑：importance 为 NULL 或 0 的若干条）
+	ids := []int64{}
+	if s.data != nil && s.data.SQLDB() != nil {
+		db := s.data.SQLDB()
+		rowQuery := `SELECT place_id FROM placex WHERE COALESCE(importance, 0) = 0 ORDER BY place_id DESC LIMIT 100`
+		rows, err := db.QueryContext(ctx, rowQuery)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id int64
+				if err := rows.Scan(&id); err == nil {
+					ids = append(ids, id)
+				}
+			}
+		}
+	}
+	return &v1.DeletableResponse{PlaceIds: ids}, nil
 }
 
 func (s *NominatimService) Polygons(ctx context.Context, _ *emptypb.Empty) (*v1.PolygonsResponse, error) {
-	return &v1.PolygonsResponse{PlaceIds: []int64{}}, nil
+	if strings.TrimSpace(os.Getenv("NOMINATIM_ENABLE_MAINTENANCE")) == "0" {
+		return &v1.PolygonsResponse{PlaceIds: []int64{}}, nil
+	}
+	// 最小实现：当使用 PostgreSQL 时，返回 polygon 无效的 place_id 列表（最多 100 条）
+	ids := []int64{}
+	if s.data != nil && s.data.SQLDB() != nil {
+		db := s.data.SQLDB()
+		rowQuery := `SELECT place_id FROM placex WHERE polygon IS NOT NULL AND NOT ST_IsValid(polygon) LIMIT 100`
+		rows, err := db.QueryContext(ctx, rowQuery)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id int64
+				if err := rows.Scan(&id); err == nil {
+					ids = append(ids, id)
+				}
+			}
+		}
+	}
+	return &v1.PolygonsResponse{PlaceIds: ids}, nil
 }
 
 func mapPlaceWithLocale(it *biz.SearchPlace, acceptLanguage string) *v1.Place {
@@ -156,23 +255,47 @@ func mapPlaceWithLocale(it *biz.SearchPlace, acceptLanguage string) *v1.Place {
 			Rank:       r.Rank,
 		})
 	}
-	// 选择 display name：优先 name:lang，其次 name
+	// 选择 display name：
+	// 1) name:<lang-REGION> 精确匹配；2) name:<lang> 回退；3) int_name；4) 基础 name
 	display := it.Name
 	langs := parseAcceptLanguages(acceptLanguage)
 	if len(langs) > 0 && len(it.NameDetails) > 0 {
+		chosen := ""
+		// 精确匹配 lang-REGION
 		for _, lang := range langs {
-			if v, ok := it.NameDetails["name:"+lang]; ok && v != "" {
-				display = v
-				break
+			if strings.Contains(lang, "-") {
+				if v, ok := it.NameDetails["name:"+lang]; ok && v != "" {
+					chosen = v
+					break
+				}
 			}
 		}
-		if display == it.Name {
-			if v, ok := it.NameDetails["name"]; ok && v != "" {
-				display = v
+		// 回退到 lang 主语言
+		if chosen == "" {
+			for _, lang := range langs {
+				base := lang
+				if i := strings.Index(lang, "-"); i >= 0 {
+					base = lang[:i]
+				}
+				if v, ok := it.NameDetails["name:"+base]; ok && v != "" {
+					chosen = v
+					break
+				}
 			}
+		}
+		if chosen == "" {
+			if v, ok := it.NameDetails["int_name"]; ok && v != "" {
+				chosen = v
+			} else if v, ok := it.NameDetails["name"]; ok && v != "" {
+				chosen = v
+			}
+		}
+		if chosen != "" {
+			display = chosen
 		}
 	}
 	return &v1.Place{
+		Licence:        licenceText,
 		PlaceId:        it.PlaceID,
 		OsmId:          it.OSMID,
 		OsmType:        it.OSMType,
@@ -225,4 +348,16 @@ func splitCSV(s string) []string {
 		return nil
 	}
 	return out
+}
+
+func parseFloatSafe(s string) float64 {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0
+	}
+	// 使用 ParseFloat 前先替换可能的空格
+	if v, err := strconv.ParseFloat(s, 64); err == nil {
+		return v
+	}
+	return 0
 }

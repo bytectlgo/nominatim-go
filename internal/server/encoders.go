@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"math"
 	"net/url"
 	v1 "nominatim-go/api/nominatim/v1"
 	"strings"
@@ -46,6 +47,9 @@ func encodeGeoJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	if !ok {
 		return http.DefaultResponseEncoder(w, r, v)
 	}
+	wantText := r.URL.Query().Get("polygon_text") == "1"
+	wantSVG := r.URL.Query().Get("polygon_svg") == "1"
+	wantKML := r.URL.Query().Get("polygon_kml") == "1"
 	fc := geoJSONFC{Type: "FeatureCollection"}
 	for _, p := range places {
 		if p == nil {
@@ -70,6 +74,20 @@ func encodeGeoJSON(w http.ResponseWriter, r *http.Request, v any) error {
 			if err := json.Unmarshal([]byte(gj), &parsed); err == nil {
 				if m, ok := parsed.(map[string]any); ok {
 					geom = m
+				}
+			}
+			// optional polygon outputs derived from geojson
+			if wantText || wantSVG || wantKML {
+				if coords := extractPolygonCoordinatesFromGeoJSON(gj); len(coords) > 0 {
+					if wantText {
+						props["polygon"] = toPolygonText(coords)
+					}
+					if wantSVG {
+						props["svg"] = toPolygonSVG(coords)
+					}
+					if wantKML {
+						props["kml"] = toPolygonKML(coords)
+					}
 				}
 			}
 		}
@@ -104,6 +122,9 @@ func encodeGeocodeJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	if !ok {
 		return http.DefaultResponseEncoder(w, r, v)
 	}
+	wantText := r.URL.Query().Get("polygon_text") == "1"
+	wantSVG := r.URL.Query().Get("polygon_svg") == "1"
+	wantKML := r.URL.Query().Get("polygon_kml") == "1"
 	out := geocodeJSON{
 		Type: "FeatureCollection",
 		Geocoding: map[string]any{
@@ -127,6 +148,19 @@ func encodeGeocodeJSON(w http.ResponseWriter, r *http.Request, v any) error {
 			if err := json.Unmarshal([]byte(gj), &parsed); err == nil {
 				if m, ok := parsed.(map[string]any); ok {
 					geom = m
+				}
+			}
+			if wantText || wantSVG || wantKML {
+				if coords := extractPolygonCoordinatesFromGeoJSON(gj); len(coords) > 0 {
+					if wantText {
+						props["polygon"] = toPolygonText(coords)
+					}
+					if wantSVG {
+						props["svg"] = toPolygonSVG(coords)
+					}
+					if wantKML {
+						props["kml"] = toPolygonKML(coords)
+					}
 				}
 			}
 		}
@@ -269,4 +303,131 @@ func encodeXML(w http.ResponseWriter, r *http.Request, v any) error {
 	default:
 		return http.DefaultResponseEncoder(w, r, v)
 	}
+}
+
+// --- polygon helpers ---
+
+// extractPolygonCoordinatesFromGeoJSON 解析 GeoJSON，提取第一个 Polygon/MultiPolygon 的坐标序列（经度、纬度）
+func extractPolygonCoordinatesFromGeoJSON(gj string) [][][2]float64 {
+	var m map[string]any
+	if err := json.Unmarshal([]byte(gj), &m); err != nil {
+		return nil
+	}
+	t, _ := m["type"].(string)
+	geom := m
+	if t == "Feature" {
+		if g, ok := m["geometry"].(map[string]any); ok {
+			geom = g
+			t, _ = geom["type"].(string)
+		}
+	}
+	coordsRaw, ok := geom["coordinates"].([]any)
+	if !ok {
+		return nil
+	}
+	// Polygon: [[[x,y],...],[...]]
+	// MultiPolygon: [[[[x,y],...]], ...]
+	parseLinearRing := func(ring []any) [][2]float64 {
+		out := make([][2]float64, 0, len(ring))
+		for _, pt := range ring {
+			if pair, ok := pt.([]any); ok && len(pair) >= 2 {
+				lon, _ := toFloat(pair[0])
+				lat, _ := toFloat(pair[1])
+				out = append(out, [2]float64{lon, lat})
+			}
+		}
+		return out
+	}
+	var polys [][][2]float64
+	switch strings.ToLower(t) {
+	case "polygon":
+		if len(coordsRaw) > 0 {
+			if ring0, ok := coordsRaw[0].([]any); ok {
+				polys = append(polys, parseLinearRing(ring0))
+			}
+		}
+	case "multipolygon":
+		if len(coordsRaw) > 0 {
+			if poly0, ok := coordsRaw[0].([]any); ok && len(poly0) > 0 {
+				if ring0, ok := poly0[0].([]any); ok {
+					polys = append(polys, parseLinearRing(ring0))
+				}
+			}
+		}
+	}
+	if len(polys) == 0 {
+		return nil
+	}
+	return polys
+}
+
+func toFloat(v any) (float64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return t, true
+	case float32:
+		return float64(t), true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	default:
+		return math.NaN(), false
+	}
+}
+
+// toPolygonText 输出简化的 polygon 文本（lon lat 以空格分隔，点以逗号分隔）
+func toPolygonText(polys [][][2]float64) string {
+	if len(polys) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for i, ring := range polys {
+		if i > 0 {
+			sb.WriteString(";")
+		}
+		for j, pt := range ring {
+			if j > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(fmt.Sprintf("%g %g", pt[0], pt[1]))
+		}
+	}
+	return sb.String()
+}
+
+// toPolygonSVG 输出一个 <path d="..." /> 的片段（未包含外部 svg 标签）
+func toPolygonSVG(polys [][][2]float64) string {
+	if len(polys) == 0 || len(polys[0]) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	ring := polys[0]
+	for i, pt := range ring {
+		if i == 0 {
+			sb.WriteString(fmt.Sprintf("M %g %g ", pt[0], pt[1]))
+		} else {
+			sb.WriteString(fmt.Sprintf("L %g %g ", pt[0], pt[1]))
+		}
+	}
+	sb.WriteString("Z")
+	return sb.String()
+}
+
+// toPolygonKML 输出一个简单 KML Polygon 片段（不含外层文档）
+func toPolygonKML(polys [][][2]float64) string {
+	if len(polys) == 0 || len(polys[0]) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString("<Polygon><outerBoundaryIs><LinearRing><coordinates>")
+	for i, pt := range polys[0] {
+		if i > 0 {
+			sb.WriteString(" ")
+		}
+		// KML: lon,lat[,alt]
+		sb.WriteString(fmt.Sprintf("%g,%g", pt[0], pt[1]))
+	}
+	sb.WriteString("</coordinates></LinearRing></outerBoundaryIs></Polygon>")
+	return sb.String()
 }

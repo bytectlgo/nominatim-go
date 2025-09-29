@@ -5,22 +5,36 @@ import (
 	v1 "nominatim-go/api/nominatim/v1"
 	"nominatim-go/internal/conf"
 	"nominatim-go/internal/service"
+	"os"
+	"strconv"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // 编码相关逻辑已拆分到 encoders.go
 
 // NewHTTPServer new an HTTP server.
 func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, nominatim *service.NominatimService, logger log.Logger) *http.Server {
-	var opts = []http.ServerOption{
-		http.Middleware(
-			recovery.Recovery(),
-			logging.Server(logger),
-		),
+	var opts = []http.ServerOption{}
+	// 基础中间件
+	baseMw := []middleware.Middleware{
+		recovery.Recovery(),
+		logging.Server(logger),
+	}
+	// 简单令牌桶限流（基于环境变量 NOMINATIM_RPS）
+	if rpsStr := os.Getenv("NOMINATIM_RPS"); rpsStr != "" {
+		if rps, err := strconv.Atoi(rpsStr); err == nil && rps > 0 {
+			limiter := newTokenBucket(float64(rps))
+			baseMw = append(baseMw, limiterMiddleware(limiter))
+		}
+	}
+	opts = append(opts,
+		http.Middleware(baseMw...),
 		http.ResponseEncoder(func(w http.ResponseWriter, r *http.Request, v any) error {
 			if r != nil {
 				q := r.URL.Query().Get("format")
@@ -35,7 +49,7 @@ func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, nominatim *s
 			return http.DefaultResponseEncoder(w, r, v)
 		}),
 		http.RequestDecoder(http.DefaultRequestDecoder),
-	}
+	)
 	if c.Http.Network != "" {
 		opts = append(opts, http.Network(c.Http.Network))
 	}
@@ -48,5 +62,7 @@ func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, nominatim *s
 	srv := http.NewServer(opts...)
 	hv1.RegisterGreeterHTTPServer(srv, greeter)
 	v1.RegisterNominatimServiceHTTPServer(srv, nominatim)
+	// Prometheus /metrics
+	srv.Handle("/metrics", promhttp.Handler())
 	return srv
 }

@@ -1,40 +1,77 @@
 version: "3.9"
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: nominatim-db
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=kratos_root_pwd
-      - MYSQL_DATABASE=kratos
-      - MYSQL_USER=kratos
-      - MYSQL_PASSWORD=kratos_pwd
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nominatim
       - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data
+
+  # 可选：使用官方 Nominatim 容器执行一次性导入任务
+  # 说明：该容器仅用于把 OSM 数据导入到上面的 db（PostGIS）里，导入完成后可移除
+  nominatim-import:
+    image: mediagis/nominatim:4.3
+    container_name: nominatim-import
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 指向 compose 网络内的 db；数据库、用户和密码与上面的 db 保持一致
+      - PBF_URL=
+      - NOMINATIM_IMPORT_STYLE=full
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=nominatim
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - THREADS=4
+      - TZ=Asia/Shanghai
+    volumes:
+      # 如果不使用 PBF_URL，可将本地 .pbf 挂载到 /data/osm.pbf，并在 command 中使用 local 模式
+      - ./data:/data
     command:
       [
-        "mysqld",
-        "--default-authentication-plugin=mysql_native_password",
-        "--character-set-server=utf8mb4",
-        "--collation-server=utf8mb4_unicode_ci",
+        "bash",
+        "-lc",
+        'if [ -n "$PBF_URL" ]; then nominatim import --osm-file $PBF_URL --threads $THREADS; else nominatim import --osm-file /data/osm.pbf --threads $THREADS; fi',
       ]
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./mysql-data:/var/lib/mysql
+    networks:
+      - nominatim
 
-  kratos:
-    image: kratos:latest
-    container_name: kratos-app
+  nominatim-go:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: nominatim-go:latest
+    container_name: nominatim-go
     restart: unless-stopped
     depends_on:
-      - mysql
-    volumes:
-      - ./configs:/app/configs
-      - ./kratos:/usr/lib/kratos
+      db:
+        condition: service_healthy
     environment:
       - TZ=Asia/Shanghai
+      - NOMINATIM_RPS=20
+      - NOMINATIM_ENABLE_MAINTENANCE=1
+      - NOMINATIM_ENABLE_DETAILS=1
+      - NOMINATIM_VERSION=dev-compose
+    volumes:
+      - ../configs:/data/conf:ro
+    ports:
+      - "8000:8000"
+      - "9000:9000"
     networks:
-      - kratos
+      - nominatim
+
 networks:
-  kratos:
+  nominatim:
     driver: bridge

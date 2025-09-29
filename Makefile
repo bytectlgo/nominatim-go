@@ -41,6 +41,11 @@ ts:
 build:
 	mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
 
+.PHONY: nominatimctl
+# build nominatimctl cli
+nominatimctl:
+	mkdir -p bin/ && go build -tags nominatimctl -ldflags "-X main.Version=$(VERSION)" -o ./bin/nominatimctl ./cmd/nominatimctl
+
 .PHONY: generate
 # generate
 generate:

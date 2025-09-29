@@ -58,22 +58,42 @@ func (r *searchRepo) SearchPlaces(ctx context.Context, p biz.SearchParams) ([]*b
 		orderPrefix = "osm_type, osm_id, "
 	}
 
+	// 近距离去重逻辑：当 dedupe 启用时，对相同 class/type 且栅格化质心一致者仅保留重要性高者
+	gridExpr := "ST_SnapToGrid(centroid, 0.0005)"
+	if !p.Dedupe {
+		gridExpr = "centroid"
+	}
 	base := `
-SELECT ` + distinctOn + `
-  place_id, osm_id, osm_type, class, type,
-  COALESCE(name->'name','') AS name,
-  COALESCE(ST_Y(centroid), 0) AS lat,
-  COALESCE(ST_X(centroid), 0) AS lon,
-  COALESCE(importance, 0) AS importance,
-  COALESCE(ST_YMin(bbox), 0) AS south,
-  COALESCE(ST_YMax(bbox), 0) AS north,
-  COALESCE(ST_XMin(bbox), 0) AS west,
-  COALESCE(ST_XMax(bbox), 0) AS east,
-  COALESCE(hstore_to_json(name)::text, '{}') AS name_json,
-  COALESCE(hstore_to_json(extratags)::text, '{}') AS extratags_json,
-  ` + geoJSONSelect + ` AS polygon_geojson
-FROM placex
-WHERE (name ? 'name') AND (name->'name' ILIKE $1)
+WITH base AS (
+  SELECT
+    place_id, osm_id, osm_type, class, type,
+    ` + gridExpr + ` AS gcentroid,
+    COALESCE(name->'name','') AS name,
+    COALESCE(ST_Y(centroid), 0) AS lat,
+    COALESCE(ST_X(centroid), 0) AS lon,
+    COALESCE(importance, 0) AS importance,
+    COALESCE(ST_YMin(bbox), 0) AS south,
+    COALESCE(ST_YMax(bbox), 0) AS north,
+    COALESCE(ST_XMin(bbox), 0) AS west,
+    COALESCE(ST_XMax(bbox), 0) AS east,
+    COALESCE(hstore_to_json(name)::text, '{}') AS name_json,
+    COALESCE(hstore_to_json(extratags)::text, '{}') AS extratags_json,
+    ` + geoJSONSelect + ` AS polygon_geojson
+  FROM placex
+  WHERE (name ? 'name') AND (name->'name' ILIKE $1)
+), deduped AS (
+  SELECT ` + distinctOn + ` *
+  FROM base
+  ` + func() string {
+		if p.Dedupe {
+			return "ORDER BY class, type, gcentroid, importance DESC NULLS LAST, place_id DESC"
+		}
+		return ""
+	}() + `
+)
+SELECT place_id, osm_id, osm_type, class, type,
+       name, lat, lon, importance, south, north, west, east, name_json, extratags_json, polygon_geojson
+FROM deduped
 `
 	args := []any{"%" + p.Q + "%"}
 	argIdx := 2
@@ -112,34 +132,18 @@ WHERE (name ? 'name') AND (name->'name' ILIKE $1)
 			}
 		}
 	}
-	if p.Bounded && (p.ViewBoxLeft != 0 || p.ViewBoxRight != 0 || p.ViewBoxTop != 0 || p.ViewBoxBottom != 0) {
-		base += " AND bbox && ST_MakeEnvelope($" + strconv.Itoa(argIdx) + ", $" + strconv.Itoa(argIdx+1) + ", $" + strconv.Itoa(argIdx+2) + ", $" + strconv.Itoa(argIdx+3) + ", 4326)"
-		args = append(args, p.ViewBoxLeft, p.ViewBoxBottom, p.ViewBoxRight, p.ViewBoxTop)
-		argIdx += 4
+	// viewbox 容错：仅当 bounded=true 且 viewbox 非全零且 left<right、bottom<top 时应用
+	if p.Bounded {
+		left, right := p.ViewBoxLeft, p.ViewBoxRight
+		top, bottom := p.ViewBoxTop, p.ViewBoxBottom
+		if !(left == 0 && right == 0 && top == 0 && bottom == 0) && left < right && bottom < top {
+			base += " AND bbox && ST_MakeEnvelope($" + strconv.Itoa(argIdx) + ", $" + strconv.Itoa(argIdx+1) + ", $" + strconv.Itoa(argIdx+2) + ", $" + strconv.Itoa(argIdx+3) + ", 4326)"
+			args = append(args, left, bottom, right, top)
+			argIdx += 4
+		}
 	}
 	if len(p.Layers) > 0 {
-		// 简化版映射：address → place/boundary/highway/administrative；poi → amenity/shop/tourism/leisure
-		// railway/natural/manmade 分别映射到相应 class
-		classes := make(map[string]struct{})
-		for _, layer := range p.Layers {
-			switch strings.ToLower(strings.TrimSpace(layer)) {
-			case "address":
-				for _, c := range []string{"place", "boundary", "highway"} {
-					classes[c] = struct{}{}
-				}
-			case "poi":
-				for _, c := range []string{"amenity", "shop", "tourism", "leisure", "craft", "office"} {
-					classes[c] = struct{}{}
-				}
-			case "railway":
-				classes["railway"] = struct{}{}
-			case "natural":
-				classes["natural"] = struct{}{}
-				classes["waterway"] = struct{}{}
-			case "manmade", "man_made":
-				classes["man_made"] = struct{}{}
-			}
-		}
+		classes := mapLayersToClasses(p.Layers)
 		if len(classes) > 0 {
 			list := make([]string, 0, len(classes))
 			for c := range classes {
@@ -160,7 +164,17 @@ WHERE (name ? 'name') AND (name->'name' ILIKE $1)
 		args = append(args, pqArray(baseArgs))
 		argIdx++
 	}
-	base += " ORDER BY " + orderPrefix + "importance DESC NULLS LAST, place_id DESC LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
+	// 若提供 viewbox，则按视窗中心距离进行次级排序
+	if (p.ViewBoxLeft != 0 || p.ViewBoxRight != 0 || p.ViewBoxTop != 0 || p.ViewBoxBottom != 0) && p.ViewBoxLeft < p.ViewBoxRight && p.ViewBoxBottom < p.ViewBoxTop {
+		centerLon := (p.ViewBoxLeft + p.ViewBoxRight) / 2
+		centerLat := (p.ViewBoxBottom + p.ViewBoxTop) / 2
+		base += " ORDER BY " + orderPrefix + "importance DESC NULLS LAST, (centroid <-> ST_SetSRID(ST_Point($" + strconv.Itoa(argIdx) + ",$" + strconv.Itoa(argIdx+1) + "), 4326)), place_id DESC"
+		args = append(args, centerLon, centerLat)
+		argIdx += 2
+	} else {
+		base += " ORDER BY " + orderPrefix + "importance DESC NULLS LAST, place_id DESC"
+	}
+	base += " LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
 	args = append(args, p.Limit, p.Offset)
 
 	rows, err := db.QueryContext(ctx, base, args...)
@@ -243,26 +257,7 @@ WHERE rank_address <= $3`
 
 	args := []any{p.Lon, p.Lat, maxRank}
 	if len(p.Layers) > 0 {
-		classes := make(map[string]struct{})
-		for _, layer := range p.Layers {
-			switch strings.ToLower(strings.TrimSpace(layer)) {
-			case "address":
-				for _, c := range []string{"place", "boundary", "highway"} {
-					classes[c] = struct{}{}
-				}
-			case "poi":
-				for _, c := range []string{"amenity", "shop", "tourism", "leisure", "craft", "office"} {
-					classes[c] = struct{}{}
-				}
-			case "railway":
-				classes["railway"] = struct{}{}
-			case "natural":
-				classes["natural"] = struct{}{}
-				classes["waterway"] = struct{}{}
-			case "manmade", "man_made":
-				classes["man_made"] = struct{}{}
-			}
-		}
+		classes := mapLayersToClasses(p.Layers)
 		if len(classes) > 0 {
 			list := make([]string, 0, len(classes))
 			for c := range classes {
@@ -445,7 +440,8 @@ func pqArray(ss []string) any { return "{" + strings.Join(ss, ",") + "}" }
 
 // zoomToMaxRank 将 zoom 映射到 rank 上限，基于 0..18 的离散表。
 func zoomToMaxRank(zoom int) int {
-	table := []int{2, 2, 2, 4, 4, 8, 10, 10, 12, 12, 16, 17, 18, 19, 22, 25, 26, 27, 30}
+	// 近似对齐：低 zoom 聚合到更上层行政等级，高 zoom 允许更细粒度
+	table := []int{2, 3, 4, 6, 8, 10, 12, 14, 15, 16, 18, 20, 22, 24, 26, 27, 28, 29, 30}
 	if zoom < 0 {
 		zoom = 0
 	}
@@ -464,9 +460,56 @@ func mapFeatureTypeToRankRange(ft string) (int, int) {
 		return 8, 8
 	case "city":
 		return 14, 16
+	case "town":
+		return 16, 18
+	case "village":
+		return 18, 20
+	case "hamlet":
+		return 20, 22
+	case "suburb":
+		return 20, 22
+	case "neighbourhood", "neighborhood":
+		return 22, 26
 	case "settlement":
 		return 8, 20
 	default:
 		return 0, int(^uint(0) >> 1)
 	}
+}
+
+// mapLayersToClasses 将常见 layers（与 Nominatim 兼容）映射为 placex.class 集合
+func mapLayersToClasses(layers []string) map[string]struct{} {
+	classes := make(map[string]struct{})
+	for _, layer := range layers {
+		switch strings.ToLower(strings.TrimSpace(layer)) {
+		case "address":
+			// 地址/行政/道路
+			for _, c := range []string{"place", "boundary", "highway", "administrative"} {
+				classes[c] = struct{}{}
+			}
+		case "poi":
+			// 兴趣点类目
+			for _, c := range []string{"amenity", "shop", "tourism", "leisure", "craft", "office", "aeroway", "aerialway", "sport", "healthcare"} {
+				classes[c] = struct{}{}
+			}
+		case "railway":
+			classes["railway"] = struct{}{}
+			classes["public_transport"] = struct{}{}
+		case "natural":
+			for _, c := range []string{"natural", "waterway", "landuse", "geological"} {
+				classes[c] = struct{}{}
+			}
+		case "manmade", "man_made":
+			classes["man_made"] = struct{}{}
+			classes["power"] = struct{}{}
+			classes["industrial"] = struct{}{}
+		case "transport":
+			for _, c := range []string{"aeroway", "aerialway", "highway", "railway", "public_transport"} {
+				classes[c] = struct{}{}
+			}
+		case "boundaries", "boundary":
+			classes["boundary"] = struct{}{}
+		}
+	}
+	return classes
 }
