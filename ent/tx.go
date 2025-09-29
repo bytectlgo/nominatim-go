@@ -12,8 +12,12 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AddressRow is the client for interacting with the AddressRow builders.
+	AddressRow *AddressRowClient
 	// Helloworld is the client for interacting with the Helloworld builders.
 	Helloworld *HelloworldClient
+	// Place is the client for interacting with the Place builders.
+	Place *PlaceClient
 
 	// lazily loaded.
 	client     *Client
@@ -145,7 +149,9 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AddressRow = NewAddressRowClient(tx.config)
 	tx.Helloworld = NewHelloworldClient(tx.config)
+	tx.Place = NewPlaceClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -155,7 +161,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Helloworld.QueryXXX(), the query will be executed
+// applies a query, for example: AddressRow.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

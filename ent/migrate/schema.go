@@ -8,6 +8,29 @@ import (
 )
 
 var (
+	// AddressRowsColumns holds the columns for the "address_rows" table.
+	AddressRowsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "component", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "admin_level", Type: field.TypeUint32, Nullable: true},
+		{Name: "rank", Type: field.TypeUint32, Default: 0},
+		{Name: "place_address_rows", Type: field.TypeInt},
+	}
+	// AddressRowsTable holds the schema information for the "address_rows" table.
+	AddressRowsTable = &schema.Table{
+		Name:       "address_rows",
+		Columns:    AddressRowsColumns,
+		PrimaryKey: []*schema.Column{AddressRowsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "address_rows_places_address_rows",
+				Columns:    []*schema.Column{AddressRowsColumns[5]},
+				RefColumns: []*schema.Column{PlacesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// HelloworldsColumns holds the columns for the "helloworlds" table.
 	HelloworldsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -19,11 +42,42 @@ var (
 		Columns:    HelloworldsColumns,
 		PrimaryKey: []*schema.Column{HelloworldsColumns[0]},
 	}
+	// PlacesColumns holds the columns for the "places" table.
+	PlacesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "place_id", Type: field.TypeInt64, Unique: true},
+		{Name: "licence", Type: field.TypeString, Nullable: true},
+		{Name: "osm_id", Type: field.TypeString},
+		{Name: "osm_type", Type: field.TypeString},
+		{Name: "category", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeString, Nullable: true},
+		{Name: "importance", Type: field.TypeFloat64, Nullable: true},
+		{Name: "display_name", Type: field.TypeString, Nullable: true},
+		{Name: "lat", Type: field.TypeFloat64},
+		{Name: "lon", Type: field.TypeFloat64},
+		{Name: "bbox_south", Type: field.TypeFloat64, Nullable: true},
+		{Name: "bbox_north", Type: field.TypeFloat64, Nullable: true},
+		{Name: "bbox_west", Type: field.TypeFloat64, Nullable: true},
+		{Name: "bbox_east", Type: field.TypeFloat64, Nullable: true},
+		{Name: "icon", Type: field.TypeString, Nullable: true},
+		{Name: "extratags", Type: field.TypeJSON, Nullable: true},
+		{Name: "namedetails", Type: field.TypeJSON, Nullable: true},
+		{Name: "polygon_geojson", Type: field.TypeString, Nullable: true},
+	}
+	// PlacesTable holds the schema information for the "places" table.
+	PlacesTable = &schema.Table{
+		Name:       "places",
+		Columns:    PlacesColumns,
+		PrimaryKey: []*schema.Column{PlacesColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AddressRowsTable,
 		HelloworldsTable,
+		PlacesTable,
 	}
 )
 
 func init() {
+	AddressRowsTable.ForeignKeys[0].RefTable = PlacesTable
 }

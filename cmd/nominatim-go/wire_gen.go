@@ -32,8 +32,11 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	greeterRepo := data.NewGreeterRepo(dataData, logger)
 	greeterUsecase := biz.NewGreeterUsecase(greeterRepo, logger)
 	greeterService := service.NewGreeterService(greeterUsecase)
-	grpcServer := server.NewGRPCServer(confServer, greeterService, logger)
-	httpServer := server.NewHTTPServer(confServer, greeterService, logger)
+	searchRepo := data.NewSearchRepo(dataData)
+	searchUsecase := biz.NewSearchUsecase(searchRepo, logger)
+	nominatimService := service.NewNominatimService(logger, searchUsecase)
+	grpcServer := server.NewGRPCServer(confServer, greeterService, nominatimService, logger)
+	httpServer := server.NewHTTPServer(confServer, greeterService, nominatimService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()

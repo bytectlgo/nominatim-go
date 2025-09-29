@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"nominatim-go/ent/addressrow"
 	"nominatim-go/ent/helloworld"
 	"nominatim-go/ent/schema"
 )
@@ -11,6 +12,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	addressrowFields := schema.AddressRow{}.Fields()
+	_ = addressrowFields
+	// addressrowDescRank is the schema descriptor for rank field.
+	addressrowDescRank := addressrowFields[4].Descriptor()
+	// addressrow.DefaultRank holds the default value on creation for the rank field.
+	addressrow.DefaultRank = addressrowDescRank.Default.(uint32)
 	helloworldFields := schema.Helloworld{}.Fields()
 	_ = helloworldFields
 	// helloworldDescName is the schema descriptor for name field.

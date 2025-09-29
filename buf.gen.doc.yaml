@@ -11,6 +11,7 @@ inputs:
   - directory: .
     paths:
       - proto/helloworld
+      - proto/nominatim
 managed:
   enabled: true
   disable:

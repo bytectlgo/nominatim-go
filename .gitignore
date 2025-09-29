@@ -41,3 +41,6 @@ bin/
 dist/
 gen-files/
 *.db
+*.db-shm
+*.db-wal
+0-Nominatim-py/

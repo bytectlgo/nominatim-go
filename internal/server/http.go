@@ -1,7 +1,8 @@
 package server
 
 import (
-	v1 "nominatim-go/api/helloworld/v1"
+	hv1 "nominatim-go/api/helloworld/v1"
+	v1 "nominatim-go/api/nominatim/v1"
 	"nominatim-go/internal/conf"
 	"nominatim-go/internal/service"
 
@@ -11,7 +12,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, nominatim *service.NominatimService, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -27,6 +28,7 @@ func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, logger log.L
 		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
 	}
 	srv := http.NewServer(opts...)
-	v1.RegisterGreeterHTTPServer(srv, greeter)
+	hv1.RegisterGreeterHTTPServer(srv, greeter)
+	v1.RegisterNominatimServiceHTTPServer(srv, nominatim)
 	return srv
 }

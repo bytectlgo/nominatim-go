@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"time"
 
+	"nominatim-go/ent"
+	"nominatim-go/internal/conf"
+
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/eko/gocache/lib/v4/cache"
 	"github.com/eko/gocache/store/go_cache/v4"
-	"nominatim-go/ent"
-	"nominatim-go/internal/conf"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/google/wire"
 	gocache "github.com/patrickmn/go-cache"
@@ -28,6 +30,7 @@ var ProviderSet = wire.NewSet(
 	NewData,
 	NewSqlDriver,
 	NewGreeterRepo,
+	NewSearchRepo,
 )
 
 // Data .
@@ -35,11 +38,20 @@ type Data struct {
 	entClient *ent.Client
 	cache     cache.CacheInterface[any]
 	conf      *conf.Data
+	sqlDrv    *entsql.Driver
 }
 
 // DB 返回数据库客户端
 func (d *Data) DB() *ent.Client {
 	return d.entClient
+}
+
+// SQLDB 返回共享的 *sql.DB（由 ent 驱动管理的连接池）
+func (d *Data) SQLDB() *sql.DB {
+	if d.sqlDrv != nil {
+		return d.sqlDrv.DB()
+	}
+	return nil
 }
 
 // Cache 返回缓存客户端
@@ -59,6 +71,7 @@ func NewData(
 		entClient: NewEnt(drv),
 		conf:      c,
 		cache:     cacheManager,
+		sqlDrv:    drv,
 	}
 	// 设置 debug 模式
 	if c.Database.Debug {
@@ -82,6 +95,8 @@ func NewSqlDriver(conf *conf.Data) *entsql.Driver {
 		return newMySqlDriver(conf)
 	case "sqlite3":
 		return newSqliteDriver(conf)
+	case "postgres", "postgresql", "pgx":
+		return newPostgresDriver(conf)
 	default:
 		panic(fmt.Sprintf("unsupported driver: %s", conf.Database.Driver))
 	}
@@ -131,6 +146,20 @@ func newMySqlDriver(conf *conf.Data) *entsql.Driver {
 	db.SetConnMaxLifetime(time.Hour)
 	db.SetConnMaxIdleTime(time.Minute * 10)
 	drv := entsql.OpenDB("mysql", db)
+	return drv
+}
+
+func newPostgresDriver(conf *conf.Data) *entsql.Driver {
+	sql.Register("pgxWithHooks", sqlhooks.Wrap(&stdlib.Driver{}, &Hooks{}))
+	db, err := sql.Open("pgxWithHooks", conf.Database.Source)
+	if err != nil {
+		panic(err)
+	}
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(100)
+	db.SetConnMaxLifetime(time.Hour)
+	db.SetConnMaxIdleTime(time.Minute * 10)
+	drv := entsql.OpenDB("pgx", db)
 	return drv
 }
 

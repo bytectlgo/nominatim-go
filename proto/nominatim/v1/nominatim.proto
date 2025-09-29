@@ -1,0 +1,231 @@
+syntax = "proto3";
+
+package nominatim.v1;
+
+option go_package = "nominatim-go/api/nominatim/v1;v1";
+
+import "google/api/annotations.proto";
+import "buf/validate/validate.proto";
+
+// 基本地理坐标
+message Point {
+  // 纬度（范围：-90 到 90）
+  double lat = 1 [(buf.validate.field).double = { gte: -90, lte: 90 }];
+  // 经度（范围：-180 到 180）
+  double lon = 2 [(buf.validate.field).double = { gte: -180, lte: 180 }];
+}
+
+// 外接矩形（左、上、右、下）
+message ViewBox {
+  // 左（最小经度）
+  double left = 1 [(buf.validate.field).double = { gte: -180, lte: 180 }];
+  // 上（最大纬度）
+  double top = 2 [(buf.validate.field).double = { gte: -90, lte: 90 }];
+  // 右（最大经度）
+  double right = 3 [(buf.validate.field).double = { gte: -180, lte: 180 }];
+  // 下（最小纬度）
+  double bottom = 4 [(buf.validate.field).double = { gte: -90, lte: 90 }];
+}
+
+// 边界框（南、北、西、东）
+message BoundingBox {
+  // 南（最小纬度）
+  double south = 1;
+  // 北（最大纬度）
+  double north = 2;
+  // 西（最小经度）
+  double west = 3;
+  // 东（最大经度）
+  double east = 4;
+}
+
+// 本地化语言优先级
+message Locales {
+  // 语言代码列表（按优先级排列），例如：zh、en
+  repeated string codes = 1;
+}
+
+// 地址行组件（对齐 Nominatim address）
+message AddressRow {
+  // 地址组件的人类可读名称
+  string name = 1 [(buf.validate.field).string = { min_len: 1 }];
+  // 地址组件类型（country/state/city/road/house_number 等）
+  string type = 2 [(buf.validate.field).string = { min_len: 1 }];
+  // OSM admin_level 或类似等级，未知时可为 0
+  uint32 admin_level = 3;
+  // 排序/重要性等级（越小越上层）
+  uint32 rank = 4;
+}
+
+// 搜索结果（尽量对齐 Nominatim 输出）
+message Place {
+  // 内部 place_id（Nominatim 主键）
+  int64 place_id = 1;
+  // 许可证说明（若有）
+  string licence = 2;
+  // OSM 对象 ID（字符串形式）
+  string osm_id = 3 [(buf.validate.field).string = { min_len: 1 }];
+  // OSM 对象类型（node/way/relation）
+  string osm_type = 4 [(buf.validate.field).string = { in: ["node","way","relation"] }];
+  // OSM 类别（class：amenity/place/boundary 等）
+  string category = 5;
+  // OSM 类型详细值（type：restaurant/city/administrative 等）
+  string type = 6;
+  // 结果的重要性分值（importance）
+  double importance = 7;
+  // 结果的展示名称（本地化后的人类可读标签）
+  string display_name = 8;
+  // 结果的几何中心点（质心）
+  Point centroid = 9;
+  // 边界框（south, north, west, east）
+  BoundingBox boundingbox = 10;
+  // 图标 URL（若对象具备）
+  string icon = 11;
+  // 额外标签（extratags）
+  map<string, string> extratags = 12;
+  // 名称细节（namedetails）
+  map<string, string> namedetails = 13;
+  // 地址行明细（用于 addressdetails=true）
+  repeated AddressRow address_rows = 14;
+  // 面要素的 GeoJSON（当 polygon_geojson=true 时返回）
+  string polygon_geojson = 15;
+}
+
+// /search 请求（尽量对齐参数集）
+message SearchRequest {
+  // 查询关键字（名称/地址/类型）
+  string q = 1;
+  // 限制国家代码（与 Python 参数名兼容），多个以逗号分隔
+  string countrycodes = 2;
+  // 返回数量上限（1-50）
+  uint32 limit = 3 [(buf.validate.field).uint32 = { gte: 1, lte: 50 }];
+  // 分页偏移（>=0）
+  uint32 offset = 4 [(buf.validate.field).uint32 = { gte: 0 }];
+  // 是否返回地址行明细（与 Python 参数名兼容）
+  bool addressdetails = 5;
+  // 接受的语言（如："zh,en"），用于本地化显示
+  string accept_language = 6;
+  // 本地化语言优先级（服务内部使用）
+  Locales locales = 7;
+  // 搜索类型过滤（class/type 组合，若支持）
+  string featuretype = 8;
+  // 去重（按相同对象、位置）
+  bool dedupe = 9;
+  // 视窗范围（viewbox）
+  ViewBox viewbox = 10;
+  // 是否限制在视窗内（bounded=1）
+  bool bounded = 11;
+  // 是否返回多边形（GeoJSON）
+  bool polygon_geojson = 12;
+  // 多边形简化阈值（0-1，越大简化越多）
+  double polygon_threshold = 13;
+  // 是否返回 extratags
+  bool extratags = 14;
+  // 是否返回 namedetails
+  bool namedetails = 15;
+}
+
+// /search 响应
+message SearchResponse {
+  // 搜索结果列表
+  repeated Place results = 1;
+}
+
+// /reverse 请求
+message ReverseRequest {
+  // 纬度（范围：-90 到 90）
+  double lat = 1 [(buf.validate.field).double = { gte: -90, lte: 90 }];
+  // 经度（范围：-180 到 180）
+  double lon = 2 [(buf.validate.field).double = { gte: -180, lte: 180 }];
+  // 结果粒度缩放（0-30），数值越小范围越大
+  uint32 zoom = 3 [(buf.validate.field).uint32 = { gte: 0, lte: 30 }];
+  // 是否返回地址行明细
+  bool addressdetails = 4;
+  // 接受的语言（如："zh,en"），用于本地化显示
+  string accept_language = 5;
+  // 本地化语言优先级（服务内部使用）
+  Locales locales = 6;
+  // 是否返回多边形（GeoJSON）
+  bool polygon_geojson = 7;
+  // 多边形简化阈值（0-1，越大简化越多）
+  double polygon_threshold = 8;
+  // 是否返回 extratags
+  bool extratags = 9;
+  // 是否返回 namedetails
+  bool namedetails = 10;
+}
+
+// /reverse 响应
+message ReverseResponse {
+  // 匹配到的单个地点结果
+  Place result = 1;
+}
+
+// /lookup 请求
+message LookupRequest {
+  // OSM 对象 ID 列表（形如：N123、W456、R789）
+  repeated string osm_ids = 1 [(buf.validate.field).repeated = { min_items: 1 }];
+  // 是否返回地址行明细
+  bool addressdetails = 2;
+  // 接受的语言（如："zh,en"），用于本地化显示
+  string accept_language = 3;
+  // 本地化语言优先级（服务内部使用）
+  Locales locales = 4;
+  // 是否返回 extratags
+  bool extratags = 5;
+  // 是否返回 namedetails
+  bool namedetails = 6;
+  // 是否返回多边形（GeoJSON）
+  bool polygon_geojson = 7;
+  // 多边形简化阈值（0-1，越大简化越多）
+  double polygon_threshold = 8;
+}
+
+// /lookup 响应
+message LookupResponse {
+  // 查询到的对象结果列表
+  repeated Place results = 1;
+}
+
+// /status 请求
+message StatusRequest {}
+
+// /status 响应
+message StatusResponse {
+  // 版本号（服务与数据版本）
+  string version = 1;
+  // 数据库健康状态（如：ok/unavailable）
+  string db_status = 2;
+  // 服务启动以来已运行时间（uptime）
+  string uptime = 3;
+}
+
+// Nominatim 服务定义
+service NominatimService {
+  // 名称/地址/类型搜索
+  rpc Search (SearchRequest) returns (SearchResponse) {
+    option (google.api.http) = {
+      get: "/search"
+    };
+  }
+  // 逆地理编码：经纬度到地点
+  rpc Reverse (ReverseRequest) returns (ReverseResponse) {
+    option (google.api.http) = {
+      get: "/reverse"
+    };
+  }
+  // 依据 OSM ID 批量查询
+  rpc Lookup (LookupRequest) returns (LookupResponse) {
+    option (google.api.http) = {
+      get: "/lookup"
+    };
+  }
+  // 服务状态
+  rpc Status (StatusRequest) returns (StatusResponse) {
+    option (google.api.http) = {
+      get: "/status"
+    };
+  }
+}
+
+

@@ -11,11 +11,14 @@ import (
 
 	"nominatim-go/ent/migrate"
 
+	"nominatim-go/ent/addressrow"
 	"nominatim-go/ent/helloworld"
+	"nominatim-go/ent/place"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -23,8 +26,12 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AddressRow is the client for interacting with the AddressRow builders.
+	AddressRow *AddressRowClient
 	// Helloworld is the client for interacting with the Helloworld builders.
 	Helloworld *HelloworldClient
+	// Place is the client for interacting with the Place builders.
+	Place *PlaceClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -36,7 +43,9 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AddressRow = NewAddressRowClient(c.config)
 	c.Helloworld = NewHelloworldClient(c.config)
+	c.Place = NewPlaceClient(c.config)
 }
 
 type (
@@ -129,7 +138,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:        ctx,
 		config:     cfg,
+		AddressRow: NewAddressRowClient(cfg),
 		Helloworld: NewHelloworldClient(cfg),
+		Place:      NewPlaceClient(cfg),
 	}, nil
 }
 
@@ -149,14 +160,16 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:        ctx,
 		config:     cfg,
+		AddressRow: NewAddressRowClient(cfg),
 		Helloworld: NewHelloworldClient(cfg),
+		Place:      NewPlaceClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Helloworld.
+//		AddressRow.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -178,22 +191,179 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.AddressRow.Use(hooks...)
 	c.Helloworld.Use(hooks...)
+	c.Place.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.AddressRow.Intercept(interceptors...)
 	c.Helloworld.Intercept(interceptors...)
+	c.Place.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AddressRowMutation:
+		return c.AddressRow.mutate(ctx, m)
 	case *HelloworldMutation:
 		return c.Helloworld.mutate(ctx, m)
+	case *PlaceMutation:
+		return c.Place.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AddressRowClient is a client for the AddressRow schema.
+type AddressRowClient struct {
+	config
+}
+
+// NewAddressRowClient returns a client for the AddressRow from the given config.
+func NewAddressRowClient(c config) *AddressRowClient {
+	return &AddressRowClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `addressrow.Hooks(f(g(h())))`.
+func (c *AddressRowClient) Use(hooks ...Hook) {
+	c.hooks.AddressRow = append(c.hooks.AddressRow, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `addressrow.Intercept(f(g(h())))`.
+func (c *AddressRowClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AddressRow = append(c.inters.AddressRow, interceptors...)
+}
+
+// Create returns a builder for creating a AddressRow entity.
+func (c *AddressRowClient) Create() *AddressRowCreate {
+	mutation := newAddressRowMutation(c.config, OpCreate)
+	return &AddressRowCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AddressRow entities.
+func (c *AddressRowClient) CreateBulk(builders ...*AddressRowCreate) *AddressRowCreateBulk {
+	return &AddressRowCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AddressRowClient) MapCreateBulk(slice any, setFunc func(*AddressRowCreate, int)) *AddressRowCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AddressRowCreateBulk{err: fmt.Errorf("calling to AddressRowClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AddressRowCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AddressRowCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AddressRow.
+func (c *AddressRowClient) Update() *AddressRowUpdate {
+	mutation := newAddressRowMutation(c.config, OpUpdate)
+	return &AddressRowUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AddressRowClient) UpdateOne(_m *AddressRow) *AddressRowUpdateOne {
+	mutation := newAddressRowMutation(c.config, OpUpdateOne, withAddressRow(_m))
+	return &AddressRowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AddressRowClient) UpdateOneID(id int64) *AddressRowUpdateOne {
+	mutation := newAddressRowMutation(c.config, OpUpdateOne, withAddressRowID(id))
+	return &AddressRowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AddressRow.
+func (c *AddressRowClient) Delete() *AddressRowDelete {
+	mutation := newAddressRowMutation(c.config, OpDelete)
+	return &AddressRowDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AddressRowClient) DeleteOne(_m *AddressRow) *AddressRowDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AddressRowClient) DeleteOneID(id int64) *AddressRowDeleteOne {
+	builder := c.Delete().Where(addressrow.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AddressRowDeleteOne{builder}
+}
+
+// Query returns a query builder for AddressRow.
+func (c *AddressRowClient) Query() *AddressRowQuery {
+	return &AddressRowQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAddressRow},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AddressRow entity by its id.
+func (c *AddressRowClient) Get(ctx context.Context, id int64) (*AddressRow, error) {
+	return c.Query().Where(addressrow.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AddressRowClient) GetX(ctx context.Context, id int64) *AddressRow {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlace queries the place edge of a AddressRow.
+func (c *AddressRowClient) QueryPlace(_m *AddressRow) *PlaceQuery {
+	query := (&PlaceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addressrow.Table, addressrow.FieldID, id),
+			sqlgraph.To(place.Table, place.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addressrow.PlaceTable, addressrow.PlaceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AddressRowClient) Hooks() []Hook {
+	return c.hooks.AddressRow
+}
+
+// Interceptors returns the client interceptors.
+func (c *AddressRowClient) Interceptors() []Interceptor {
+	return c.inters.AddressRow
+}
+
+func (c *AddressRowClient) mutate(ctx context.Context, m *AddressRowMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AddressRowCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AddressRowUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AddressRowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AddressRowDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AddressRow mutation op: %q", m.Op())
 	}
 }
 
@@ -330,12 +500,161 @@ func (c *HelloworldClient) mutate(ctx context.Context, m *HelloworldMutation) (V
 	}
 }
 
+// PlaceClient is a client for the Place schema.
+type PlaceClient struct {
+	config
+}
+
+// NewPlaceClient returns a client for the Place from the given config.
+func NewPlaceClient(c config) *PlaceClient {
+	return &PlaceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `place.Hooks(f(g(h())))`.
+func (c *PlaceClient) Use(hooks ...Hook) {
+	c.hooks.Place = append(c.hooks.Place, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `place.Intercept(f(g(h())))`.
+func (c *PlaceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Place = append(c.inters.Place, interceptors...)
+}
+
+// Create returns a builder for creating a Place entity.
+func (c *PlaceClient) Create() *PlaceCreate {
+	mutation := newPlaceMutation(c.config, OpCreate)
+	return &PlaceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Place entities.
+func (c *PlaceClient) CreateBulk(builders ...*PlaceCreate) *PlaceCreateBulk {
+	return &PlaceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlaceClient) MapCreateBulk(slice any, setFunc func(*PlaceCreate, int)) *PlaceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlaceCreateBulk{err: fmt.Errorf("calling to PlaceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlaceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlaceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Place.
+func (c *PlaceClient) Update() *PlaceUpdate {
+	mutation := newPlaceMutation(c.config, OpUpdate)
+	return &PlaceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlaceClient) UpdateOne(_m *Place) *PlaceUpdateOne {
+	mutation := newPlaceMutation(c.config, OpUpdateOne, withPlace(_m))
+	return &PlaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlaceClient) UpdateOneID(id int) *PlaceUpdateOne {
+	mutation := newPlaceMutation(c.config, OpUpdateOne, withPlaceID(id))
+	return &PlaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Place.
+func (c *PlaceClient) Delete() *PlaceDelete {
+	mutation := newPlaceMutation(c.config, OpDelete)
+	return &PlaceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlaceClient) DeleteOne(_m *Place) *PlaceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlaceClient) DeleteOneID(id int) *PlaceDeleteOne {
+	builder := c.Delete().Where(place.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlaceDeleteOne{builder}
+}
+
+// Query returns a query builder for Place.
+func (c *PlaceClient) Query() *PlaceQuery {
+	return &PlaceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlace},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Place entity by its id.
+func (c *PlaceClient) Get(ctx context.Context, id int) (*Place, error) {
+	return c.Query().Where(place.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlaceClient) GetX(ctx context.Context, id int) *Place {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAddressRows queries the address_rows edge of a Place.
+func (c *PlaceClient) QueryAddressRows(_m *Place) *AddressRowQuery {
+	query := (&AddressRowClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(place.Table, place.FieldID, id),
+			sqlgraph.To(addressrow.Table, addressrow.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, place.AddressRowsTable, place.AddressRowsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlaceClient) Hooks() []Hook {
+	return c.hooks.Place
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlaceClient) Interceptors() []Interceptor {
+	return c.inters.Place
+}
+
+func (c *PlaceClient) mutate(ctx context.Context, m *PlaceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlaceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlaceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlaceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Place mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Helloworld []ent.Hook
+		AddressRow, Helloworld, Place []ent.Hook
 	}
 	inters struct {
-		Helloworld []ent.Interceptor
+		AddressRow, Helloworld, Place []ent.Interceptor
 	}
 )

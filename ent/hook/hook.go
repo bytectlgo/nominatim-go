@@ -8,6 +8,18 @@ import (
 	"nominatim-go/ent"
 )
 
+// The AddressRowFunc type is an adapter to allow the use of ordinary
+// function as AddressRow mutator.
+type AddressRowFunc func(context.Context, *ent.AddressRowMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AddressRowFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AddressRowMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AddressRowMutation", m)
+}
+
 // The HelloworldFunc type is an adapter to allow the use of ordinary
 // function as Helloworld mutator.
 type HelloworldFunc func(context.Context, *ent.HelloworldMutation) (ent.Value, error)
@@ -18,6 +30,18 @@ func (f HelloworldFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HelloworldMutation", m)
+}
+
+// The PlaceFunc type is an adapter to allow the use of ordinary
+// function as Place mutator.
+type PlaceFunc func(context.Context, *ent.PlaceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlaceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlaceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlaceMutation", m)
 }
 
 // Condition is a hook condition function.

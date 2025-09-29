@@ -3,6 +3,70 @@
 package ent
 
 // set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdate) SetNotEmptyComponent(value string) *AddressRowUpdate {
+	if value != "" {
+		return _m.SetComponent(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdateOne) SetNotEmptyComponent(value string) *AddressRowUpdateOne {
+	if value != "" {
+		return _m.SetComponent(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdate) SetNotEmptyName(value string) *AddressRowUpdate {
+	if value != "" {
+		return _m.SetName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdateOne) SetNotEmptyName(value string) *AddressRowUpdateOne {
+	if value != "" {
+		return _m.SetName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdate) SetNotEmptyAdminLevel(value uint32) *AddressRowUpdate {
+	if value != 0 {
+		return _m.SetAdminLevel(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdateOne) SetNotEmptyAdminLevel(value uint32) *AddressRowUpdateOne {
+	if value != 0 {
+		return _m.SetAdminLevel(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdate) SetNotEmptyRank(value uint32) *AddressRowUpdate {
+	if value != 0 {
+		return _m.SetRank(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdateOne) SetNotEmptyRank(value uint32) *AddressRowUpdateOne {
+	if value != 0 {
+		return _m.SetRank(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
 func (_m *HelloworldUpdate) SetNotEmptyName(value string) *HelloworldUpdate {
 	if value != "" {
 		return _m.SetName(value)
@@ -14,6 +78,262 @@ func (_m *HelloworldUpdate) SetNotEmptyName(value string) *HelloworldUpdate {
 func (_m *HelloworldUpdateOne) SetNotEmptyName(value string) *HelloworldUpdateOne {
 	if value != "" {
 		return _m.SetName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyPlaceID(value int64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetPlaceID(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyPlaceID(value int64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetPlaceID(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyLicence(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetLicence(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyLicence(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetLicence(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyOsmID(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetOsmID(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyOsmID(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetOsmID(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyOsmType(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetOsmType(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyOsmType(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetOsmType(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyCategory(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetCategory(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyCategory(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetCategory(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyType(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetType(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyType(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetType(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyImportance(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetImportance(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyImportance(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetImportance(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyDisplayName(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetDisplayName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyDisplayName(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetDisplayName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyLat(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetLat(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyLat(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetLat(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyLon(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetLon(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyLon(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetLon(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyBboxSouth(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetBboxSouth(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyBboxSouth(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetBboxSouth(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyBboxNorth(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetBboxNorth(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyBboxNorth(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetBboxNorth(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyBboxWest(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetBboxWest(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyBboxWest(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetBboxWest(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyBboxEast(value float64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetBboxEast(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyBboxEast(value float64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetBboxEast(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyIcon(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetIcon(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyIcon(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetIcon(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyPolygonGeojson(value string) *PlaceUpdate {
+	if value != "" {
+		return _m.SetPolygonGeojson(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyPolygonGeojson(value string) *PlaceUpdateOne {
+	if value != "" {
+		return _m.SetPolygonGeojson(value)
 	}
 	return _m
 }

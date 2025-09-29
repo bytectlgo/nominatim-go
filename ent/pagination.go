@@ -5,7 +5,9 @@ package ent
 import (
 	"context"
 	"fmt"
+	"nominatim-go/ent/addressrow"
 	"nominatim-go/ent/helloworld"
+	"nominatim-go/ent/place"
 )
 
 const errInvalidPage = "INVALID_PAGE"
@@ -53,6 +55,86 @@ func (o OrderDirection) reverse() OrderDirection {
 }
 
 const errInvalidPagination = "INVALID_PAGINATION"
+
+type AddressRowPager struct {
+	// Order OrderFunc
+	Order  addressrow.OrderOption
+	Filter func(*AddressRowQuery) (*AddressRowQuery, error)
+}
+
+// AddressRowPaginateOption enables pagination customization.
+type AddressRowPaginateOption func(*AddressRowPager)
+
+// DefaultAddressRowOrder is the default ordering of AddressRow.
+var DefaultAddressRowOrder = Desc(addressrow.FieldID)
+
+func newAddressRowPager(opts []AddressRowPaginateOption) (*AddressRowPager, error) {
+	pager := &AddressRowPager{}
+	for _, opt := range opts {
+		opt(pager)
+	}
+	if pager.Order == nil {
+		//pager.Order = DefaultAddressRowOrder
+	}
+	return pager, nil
+}
+
+func (p *AddressRowPager) ApplyFilter(query *AddressRowQuery) (*AddressRowQuery, error) {
+	if p.Filter != nil {
+		return p.Filter(query)
+	}
+	return query, nil
+}
+
+// AddressRowPageList is AddressRow PageList result.
+type AddressRowPageList struct {
+	List        []*AddressRow `json:"list"`
+	PageDetails *PageDetails  `json:"pageDetails"`
+}
+
+func (_m *AddressRowQuery) Page(
+	ctx context.Context, pageNum uint64, pageSize uint64, withCount bool, opts ...AddressRowPaginateOption,
+) (*AddressRowPageList, error) {
+	pager, err := newAddressRowPager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if _m, err = pager.ApplyFilter(_m); err != nil {
+		return nil, err
+	}
+
+	ret := &AddressRowPageList{}
+
+	ret.PageDetails = &PageDetails{
+		Page:  pageNum,
+		Size:  pageSize,
+		Total: 0,
+	}
+
+	if withCount {
+		count, err := _m.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		ret.PageDetails.Total = uint64(count)
+	}
+
+	if pager.Order != nil {
+		_m = _m.Order(pager.Order)
+	} else {
+		//_m = _m.Order(DefaultAddressRowOrder)
+	}
+
+	_m = _m.Offset(int((pageNum - 1) * pageSize)).Limit(int(pageSize))
+	list, err := _m.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret.List = list
+
+	return ret, nil
+}
 
 type HelloworldPager struct {
 	// Order OrderFunc
@@ -122,6 +204,86 @@ func (_m *HelloworldQuery) Page(
 		_m = _m.Order(pager.Order)
 	} else {
 		//_m = _m.Order(DefaultHelloworldOrder)
+	}
+
+	_m = _m.Offset(int((pageNum - 1) * pageSize)).Limit(int(pageSize))
+	list, err := _m.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret.List = list
+
+	return ret, nil
+}
+
+type PlacePager struct {
+	// Order OrderFunc
+	Order  place.OrderOption
+	Filter func(*PlaceQuery) (*PlaceQuery, error)
+}
+
+// PlacePaginateOption enables pagination customization.
+type PlacePaginateOption func(*PlacePager)
+
+// DefaultPlaceOrder is the default ordering of Place.
+var DefaultPlaceOrder = Desc(place.FieldID)
+
+func newPlacePager(opts []PlacePaginateOption) (*PlacePager, error) {
+	pager := &PlacePager{}
+	for _, opt := range opts {
+		opt(pager)
+	}
+	if pager.Order == nil {
+		//pager.Order = DefaultPlaceOrder
+	}
+	return pager, nil
+}
+
+func (p *PlacePager) ApplyFilter(query *PlaceQuery) (*PlaceQuery, error) {
+	if p.Filter != nil {
+		return p.Filter(query)
+	}
+	return query, nil
+}
+
+// PlacePageList is Place PageList result.
+type PlacePageList struct {
+	List        []*Place     `json:"list"`
+	PageDetails *PageDetails `json:"pageDetails"`
+}
+
+func (_m *PlaceQuery) Page(
+	ctx context.Context, pageNum uint64, pageSize uint64, withCount bool, opts ...PlacePaginateOption,
+) (*PlacePageList, error) {
+	pager, err := newPlacePager(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if _m, err = pager.ApplyFilter(_m); err != nil {
+		return nil, err
+	}
+
+	ret := &PlacePageList{}
+
+	ret.PageDetails = &PageDetails{
+		Page:  pageNum,
+		Size:  pageSize,
+		Total: 0,
+	}
+
+	if withCount {
+		count, err := _m.Clone().Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		ret.PageDetails.Total = uint64(count)
+	}
+
+	if pager.Order != nil {
+		_m = _m.Order(pager.Order)
+	} else {
+		//_m = _m.Order(DefaultPlaceOrder)
 	}
 
 	_m = _m.Offset(int((pageNum - 1) * pageSize)).Limit(int(pageSize))

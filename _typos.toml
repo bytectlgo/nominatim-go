@@ -17,4 +17,5 @@ extend-exclude = [
   "**/*.pb.go",
   "*.pb.ts",
   "**/*_pb.ts",
+  "0-Nominatim-py/**"
 ]

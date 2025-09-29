@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"nominatim-go/ent/addressrow"
 	"nominatim-go/ent/helloworld"
+	"nominatim-go/ent/place"
 	"reflect"
 	"sync"
 
@@ -73,7 +75,9 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			addressrow.Table: addressrow.ValidColumn,
 			helloworld.Table: helloworld.ValidColumn,
+			place.Table:      place.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

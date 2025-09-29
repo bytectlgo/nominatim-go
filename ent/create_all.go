@@ -3,9 +3,79 @@
 package ent
 
 // set all field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowCreate) SetALL(v *AddressRow) *AddressRowCreate {
+	if v.Component != "" {
+		_m.SetComponent(v.Component)
+	}
+	if v.Name != "" {
+		_m.SetName(v.Name)
+	}
+	if v.AdminLevel != 0 {
+		_m.SetAdminLevel(v.AdminLevel)
+	}
+	if v.Rank != 0 {
+		_m.SetRank(v.Rank)
+	}
+	return _m
+}
+
+// set all field if value is not empty. e.g. string does not equal to ""
 func (_m *HelloworldCreate) SetALL(v *Helloworld) *HelloworldCreate {
 	if v.Name != "" {
 		_m.SetName(v.Name)
+	}
+	return _m
+}
+
+// set all field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceCreate) SetALL(v *Place) *PlaceCreate {
+	if v.PlaceID != 0 {
+		_m.SetPlaceID(v.PlaceID)
+	}
+	if v.Licence != "" {
+		_m.SetLicence(v.Licence)
+	}
+	if v.OsmID != "" {
+		_m.SetOsmID(v.OsmID)
+	}
+	if v.OsmType != "" {
+		_m.SetOsmType(v.OsmType)
+	}
+	if v.Category != "" {
+		_m.SetCategory(v.Category)
+	}
+	if v.Type != "" {
+		_m.SetType(v.Type)
+	}
+	if v.Importance != 0 {
+		_m.SetImportance(v.Importance)
+	}
+	if v.DisplayName != "" {
+		_m.SetDisplayName(v.DisplayName)
+	}
+	if v.Lat != 0 {
+		_m.SetLat(v.Lat)
+	}
+	if v.Lon != 0 {
+		_m.SetLon(v.Lon)
+	}
+	if v.BboxSouth != 0 {
+		_m.SetBboxSouth(v.BboxSouth)
+	}
+	if v.BboxNorth != 0 {
+		_m.SetBboxNorth(v.BboxNorth)
+	}
+	if v.BboxWest != 0 {
+		_m.SetBboxWest(v.BboxWest)
+	}
+	if v.BboxEast != 0 {
+		_m.SetBboxEast(v.BboxEast)
+	}
+	if v.Icon != "" {
+		_m.SetIcon(v.Icon)
+	}
+	if v.PolygonGeojson != "" {
+		_m.SetPolygonGeojson(v.PolygonGeojson)
 	}
 	return _m
 }

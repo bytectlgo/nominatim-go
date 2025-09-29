@@ -6,5 +6,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AddressRow is the predicate function for addressrow builders.
+type AddressRow func(*sql.Selector)
+
 // Helloworld is the predicate function for helloworld builders.
 type Helloworld func(*sql.Selector)
+
+// Place is the predicate function for place builders.
+type Place func(*sql.Selector)

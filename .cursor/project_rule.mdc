@@ -1,9 +1,6 @@
 ---
-description:
-globs:
-alwaysApply: false
+alwaysApply: true
 ---
-
 # 项目规则
 
 ## 项目结构
@@ -31,6 +28,23 @@ alwaysApply: false
   - api：通信以 HTTP/gRPC 为基础，使用 Protobuf 定义。默认仅生成 gRPC 代码；如需生成 HTTP 代码，请在 proto 中添加 `option (google.api.http)` 的映射再生成。
   - 逃生门：若有文件上传或无法很好用 proto 表达的自由 JSON 结构，可在 Protobuf 体系外定义常规 `http.Handler` 并挂载到路由。
   - errors：使用 Protobuf Enum 定义错误码，并通过工具生成判定接口。
+  - 使用`buf/validate/validate.proto"` 定义proto时, 加上对应字段校验规则.
+  - proto的结构体字段注释需要放字段上方,尽量保证每个字段都有注释,尽量是中文注释
+  - 定义好后可以使用`make api` 进行生成代码测试
+
+## ent schema
+
+- 定义好后可以使用`make genarate` 生成代码测试.
+- 更新和创建时间尽量直接引用pkg/ent/mixins中定义好的.
+
+## biz
+
+- biz中定义的结构体字段注释需要放字段右边,尽量保证每个字段都有注释,尽量是中文注释
+
+## data
+
+- 数据库操作尽量使用 `data.entClient` 使用ent操作
+- 缓存使用 `data.cache`
 
 ## 元信息传递
 
