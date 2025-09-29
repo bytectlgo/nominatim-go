@@ -36,6 +36,10 @@ type AddressRowMutation struct {
 	op             Op
 	typ            string
 	id             *int64
+	created_at     *int64
+	addcreated_at  *int64
+	updated_at     *int64
+	addupdated_at  *int64
 	component      *string
 	name           *string
 	admin_level    *uint32
@@ -152,6 +156,118 @@ func (m *AddressRowMutation) IDs(ctx context.Context) ([]int64, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AddressRowMutation) SetCreatedAt(i int64) {
+	m.created_at = &i
+	m.addcreated_at = nil
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AddressRowMutation) CreatedAt() (r int64, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AddressRow entity.
+// If the AddressRow object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddressRowMutation) OldCreatedAt(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// AddCreatedAt adds i to the "created_at" field.
+func (m *AddressRowMutation) AddCreatedAt(i int64) {
+	if m.addcreated_at != nil {
+		*m.addcreated_at += i
+	} else {
+		m.addcreated_at = &i
+	}
+}
+
+// AddedCreatedAt returns the value that was added to the "created_at" field in this mutation.
+func (m *AddressRowMutation) AddedCreatedAt() (r int64, exists bool) {
+	v := m.addcreated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AddressRowMutation) ResetCreatedAt() {
+	m.created_at = nil
+	m.addcreated_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AddressRowMutation) SetUpdatedAt(i int64) {
+	m.updated_at = &i
+	m.addupdated_at = nil
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AddressRowMutation) UpdatedAt() (r int64, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AddressRow entity.
+// If the AddressRow object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddressRowMutation) OldUpdatedAt(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// AddUpdatedAt adds i to the "updated_at" field.
+func (m *AddressRowMutation) AddUpdatedAt(i int64) {
+	if m.addupdated_at != nil {
+		*m.addupdated_at += i
+	} else {
+		m.addupdated_at = &i
+	}
+}
+
+// AddedUpdatedAt returns the value that was added to the "updated_at" field in this mutation.
+func (m *AddressRowMutation) AddedUpdatedAt() (r int64, exists bool) {
+	v := m.addupdated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AddressRowMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+	m.addupdated_at = nil
 }
 
 // SetComponent sets the "component" field.
@@ -425,7 +541,13 @@ func (m *AddressRowMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddressRowMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, addressrow.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, addressrow.FieldUpdatedAt)
+	}
 	if m.component != nil {
 		fields = append(fields, addressrow.FieldComponent)
 	}
@@ -446,6 +568,10 @@ func (m *AddressRowMutation) Fields() []string {
 // schema.
 func (m *AddressRowMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		return m.CreatedAt()
+	case addressrow.FieldUpdatedAt:
+		return m.UpdatedAt()
 	case addressrow.FieldComponent:
 		return m.Component()
 	case addressrow.FieldName:
@@ -463,6 +589,10 @@ func (m *AddressRowMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *AddressRowMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case addressrow.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	case addressrow.FieldComponent:
 		return m.OldComponent(ctx)
 	case addressrow.FieldName:
@@ -480,6 +610,20 @@ func (m *AddressRowMutation) OldField(ctx context.Context, name string) (ent.Val
 // type.
 func (m *AddressRowMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case addressrow.FieldUpdatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
 	case addressrow.FieldComponent:
 		v, ok := value.(string)
 		if !ok {
@@ -516,6 +660,12 @@ func (m *AddressRowMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *AddressRowMutation) AddedFields() []string {
 	var fields []string
+	if m.addcreated_at != nil {
+		fields = append(fields, addressrow.FieldCreatedAt)
+	}
+	if m.addupdated_at != nil {
+		fields = append(fields, addressrow.FieldUpdatedAt)
+	}
 	if m.addadmin_level != nil {
 		fields = append(fields, addressrow.FieldAdminLevel)
 	}
@@ -530,6 +680,10 @@ func (m *AddressRowMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *AddressRowMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		return m.AddedCreatedAt()
+	case addressrow.FieldUpdatedAt:
+		return m.AddedUpdatedAt()
 	case addressrow.FieldAdminLevel:
 		return m.AddedAdminLevel()
 	case addressrow.FieldRank:
@@ -543,6 +697,20 @@ func (m *AddressRowMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *AddressRowMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreatedAt(v)
+		return nil
+	case addressrow.FieldUpdatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUpdatedAt(v)
+		return nil
 	case addressrow.FieldAdminLevel:
 		v, ok := value.(int32)
 		if !ok {
@@ -593,6 +761,12 @@ func (m *AddressRowMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *AddressRowMutation) ResetField(name string) error {
 	switch name {
+	case addressrow.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case addressrow.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
 	case addressrow.FieldComponent:
 		m.ResetComponent()
 		return nil
@@ -1021,6 +1195,10 @@ type PlaceMutation struct {
 	op                  Op
 	typ                 string
 	id                  *int
+	created_at          *int64
+	addcreated_at       *int64
+	updated_at          *int64
+	addupdated_at       *int64
 	place_id            *int64
 	addplace_id         *int64
 	licence             *string
@@ -1152,6 +1330,118 @@ func (m *PlaceMutation) IDs(ctx context.Context) ([]int, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlaceMutation) SetCreatedAt(i int64) {
+	m.created_at = &i
+	m.addcreated_at = nil
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlaceMutation) CreatedAt() (r int64, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Place entity.
+// If the Place object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlaceMutation) OldCreatedAt(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// AddCreatedAt adds i to the "created_at" field.
+func (m *PlaceMutation) AddCreatedAt(i int64) {
+	if m.addcreated_at != nil {
+		*m.addcreated_at += i
+	} else {
+		m.addcreated_at = &i
+	}
+}
+
+// AddedCreatedAt returns the value that was added to the "created_at" field in this mutation.
+func (m *PlaceMutation) AddedCreatedAt() (r int64, exists bool) {
+	v := m.addcreated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlaceMutation) ResetCreatedAt() {
+	m.created_at = nil
+	m.addcreated_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlaceMutation) SetUpdatedAt(i int64) {
+	m.updated_at = &i
+	m.addupdated_at = nil
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlaceMutation) UpdatedAt() (r int64, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Place entity.
+// If the Place object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlaceMutation) OldUpdatedAt(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// AddUpdatedAt adds i to the "updated_at" field.
+func (m *PlaceMutation) AddUpdatedAt(i int64) {
+	if m.addupdated_at != nil {
+		*m.addupdated_at += i
+	} else {
+		m.addupdated_at = &i
+	}
+}
+
+// AddedUpdatedAt returns the value that was added to the "updated_at" field in this mutation.
+func (m *PlaceMutation) AddedUpdatedAt() (r int64, exists bool) {
+	v := m.addupdated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlaceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+	m.addupdated_at = nil
 }
 
 // SetPlaceID sets the "place_id" field.
@@ -2224,7 +2514,13 @@ func (m *PlaceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlaceMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 20)
+	if m.created_at != nil {
+		fields = append(fields, place.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, place.FieldUpdatedAt)
+	}
 	if m.place_id != nil {
 		fields = append(fields, place.FieldPlaceID)
 	}
@@ -2287,6 +2583,10 @@ func (m *PlaceMutation) Fields() []string {
 // schema.
 func (m *PlaceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case place.FieldCreatedAt:
+		return m.CreatedAt()
+	case place.FieldUpdatedAt:
+		return m.UpdatedAt()
 	case place.FieldPlaceID:
 		return m.PlaceID()
 	case place.FieldLicence:
@@ -2332,6 +2632,10 @@ func (m *PlaceMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *PlaceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case place.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case place.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	case place.FieldPlaceID:
 		return m.OldPlaceID(ctx)
 	case place.FieldLicence:
@@ -2377,6 +2681,20 @@ func (m *PlaceMutation) OldField(ctx context.Context, name string) (ent.Value, e
 // type.
 func (m *PlaceMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case place.FieldCreatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case place.FieldUpdatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
 	case place.FieldPlaceID:
 		v, ok := value.(int64)
 		if !ok {
@@ -2511,6 +2829,12 @@ func (m *PlaceMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *PlaceMutation) AddedFields() []string {
 	var fields []string
+	if m.addcreated_at != nil {
+		fields = append(fields, place.FieldCreatedAt)
+	}
+	if m.addupdated_at != nil {
+		fields = append(fields, place.FieldUpdatedAt)
+	}
 	if m.addplace_id != nil {
 		fields = append(fields, place.FieldPlaceID)
 	}
@@ -2543,6 +2867,10 @@ func (m *PlaceMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *PlaceMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case place.FieldCreatedAt:
+		return m.AddedCreatedAt()
+	case place.FieldUpdatedAt:
+		return m.AddedUpdatedAt()
 	case place.FieldPlaceID:
 		return m.AddedPlaceID()
 	case place.FieldImportance:
@@ -2568,6 +2896,20 @@ func (m *PlaceMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *PlaceMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case place.FieldCreatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreatedAt(v)
+		return nil
+	case place.FieldUpdatedAt:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUpdatedAt(v)
+		return nil
 	case place.FieldPlaceID:
 		v, ok := value.(int64)
 		if !ok {
@@ -2732,6 +3074,12 @@ func (m *PlaceMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *PlaceMutation) ResetField(name string) error {
 	switch name {
+	case place.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case place.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
 	case place.FieldPlaceID:
 		m.ResetPlaceID()
 		return nil

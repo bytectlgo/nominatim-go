@@ -12,6 +12,10 @@ const (
 	Label = "address_row"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// FieldComponent holds the string denoting the component field in the database.
 	FieldComponent = "component"
 	// FieldName holds the string denoting the name field in the database.
@@ -36,6 +40,8 @@ const (
 // Columns holds all SQL columns for addressrow fields.
 var Columns = []string{
 	FieldID,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 	FieldComponent,
 	FieldName,
 	FieldAdminLevel,
@@ -64,6 +70,12 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() int64
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() int64
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() int64
 	// DefaultRank holds the default value on creation for the "rank" field.
 	DefaultRank uint32
 )
@@ -74,6 +86,16 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByComponent orders the results by the component field.
@@ -113,6 +135,8 @@ func newPlaceStep() *sqlgraph.Step {
 // 结构体字段转表字段map
 var StructToFieldMap = map[string]string{
 	"id":         FieldID,
+	"createdAt":  FieldCreatedAt,
+	"updatedAt":  FieldUpdatedAt,
 	"component":  FieldComponent,
 	"name":       FieldName,
 	"adminLevel": FieldAdminLevel,

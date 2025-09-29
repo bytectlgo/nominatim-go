@@ -3,6 +3,22 @@
 package ent
 
 // set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdate) SetNotEmptyUpdatedAt(value int64) *AddressRowUpdate {
+	if value != 0 {
+		return _m.SetUpdatedAt(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *AddressRowUpdateOne) SetNotEmptyUpdatedAt(value int64) *AddressRowUpdateOne {
+	if value != 0 {
+		return _m.SetUpdatedAt(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
 func (_m *AddressRowUpdate) SetNotEmptyComponent(value string) *AddressRowUpdate {
 	if value != "" {
 		return _m.SetComponent(value)
@@ -78,6 +94,22 @@ func (_m *HelloworldUpdate) SetNotEmptyName(value string) *HelloworldUpdate {
 func (_m *HelloworldUpdateOne) SetNotEmptyName(value string) *HelloworldUpdateOne {
 	if value != "" {
 		return _m.SetName(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdate) SetNotEmptyUpdatedAt(value int64) *PlaceUpdate {
+	if value != 0 {
+		return _m.SetUpdatedAt(value)
+	}
+	return _m
+}
+
+// set field if value is not empty. e.g. string does not equal to ""
+func (_m *PlaceUpdateOne) SetNotEmptyUpdatedAt(value int64) *PlaceUpdateOne {
+	if value != 0 {
+		return _m.SetUpdatedAt(value)
 	}
 	return _m
 }

@@ -34,7 +34,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	greeterService := service.NewGreeterService(greeterUsecase)
 	searchRepo := data.NewSearchRepo(dataData)
 	searchUsecase := biz.NewSearchUsecase(searchRepo, logger)
-	nominatimService := service.NewNominatimService(logger, searchUsecase)
+	nominatimService := service.NewNominatimService(logger, searchUsecase, dataData)
 	grpcServer := server.NewGRPCServer(confServer, greeterService, nominatimService, logger)
 	httpServer := server.NewHTTPServer(confServer, greeterService, nominatimService, logger)
 	app := newApp(logger, grpcServer, httpServer)

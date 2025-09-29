@@ -11,6 +11,8 @@ var (
 	// AddressRowsColumns holds the columns for the "address_rows" table.
 	AddressRowsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeInt64},
+		{Name: "updated_at", Type: field.TypeInt64},
 		{Name: "component", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "admin_level", Type: field.TypeUint32, Nullable: true},
@@ -25,7 +27,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "address_rows_places_address_rows",
-				Columns:    []*schema.Column{AddressRowsColumns[5]},
+				Columns:    []*schema.Column{AddressRowsColumns[7]},
 				RefColumns: []*schema.Column{PlacesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -45,6 +47,8 @@ var (
 	// PlacesColumns holds the columns for the "places" table.
 	PlacesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeInt64},
+		{Name: "updated_at", Type: field.TypeInt64},
 		{Name: "place_id", Type: field.TypeInt64, Unique: true},
 		{Name: "licence", Type: field.TypeString, Nullable: true},
 		{Name: "osm_id", Type: field.TypeString},

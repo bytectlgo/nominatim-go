@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"nominatim-go/pkg/ent/mixins"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -9,6 +11,13 @@ import (
 // Place 对应 Nominatim 的地理对象（对齐 proto 字段）。
 type Place struct {
 	ent.Schema
+}
+
+// Mixin returns mixin definitions.
+func (Place) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixins.TimeMixin{},
+	}
 }
 
 // Fields of the Place.

@@ -29,6 +29,19 @@ func (_u *PlaceUpdate) Where(ps ...predicate.Place) *PlaceUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *PlaceUpdate) SetUpdatedAt(v int64) *PlaceUpdate {
+	_u.mutation.ResetUpdatedAt()
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddUpdatedAt adds value to the "updated_at" field.
+func (_u *PlaceUpdate) AddUpdatedAt(v int64) *PlaceUpdate {
+	_u.mutation.AddUpdatedAt(v)
+	return _u
+}
+
 // SetPlaceID sets the "place_id" field.
 func (_u *PlaceUpdate) SetPlaceID(v int64) *PlaceUpdate {
 	_u.mutation.ResetPlaceID()
@@ -442,6 +455,7 @@ func (_u *PlaceUpdate) RemoveAddressRows(v ...*AddressRow) *PlaceUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *PlaceUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -467,6 +481,14 @@ func (_u *PlaceUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *PlaceUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := place.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
 func (_u *PlaceUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *PlaceUpdate {
 	_u.modifiers = append(_u.modifiers, modifiers...)
@@ -481,6 +503,12 @@ func (_u *PlaceUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(place.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedAt(); ok {
+		_spec.AddField(place.FieldUpdatedAt, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.PlaceID(); ok {
 		_spec.SetField(place.FieldPlaceID, field.TypeInt64, value)
@@ -664,6 +692,19 @@ type PlaceUpdateOne struct {
 	hooks     []Hook
 	mutation  *PlaceMutation
 	modifiers []func(*sql.UpdateBuilder)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *PlaceUpdateOne) SetUpdatedAt(v int64) *PlaceUpdateOne {
+	_u.mutation.ResetUpdatedAt()
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddUpdatedAt adds value to the "updated_at" field.
+func (_u *PlaceUpdateOne) AddUpdatedAt(v int64) *PlaceUpdateOne {
+	_u.mutation.AddUpdatedAt(v)
+	return _u
 }
 
 // SetPlaceID sets the "place_id" field.
@@ -1092,6 +1133,7 @@ func (_u *PlaceUpdateOne) Select(field string, fields ...string) *PlaceUpdateOne
 
 // Save executes the query and returns the updated Place entity.
 func (_u *PlaceUpdateOne) Save(ctx context.Context) (*Place, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -1114,6 +1156,14 @@ func (_u *PlaceUpdateOne) Exec(ctx context.Context) error {
 func (_u *PlaceUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *PlaceUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := place.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -1148,6 +1198,12 @@ func (_u *PlaceUpdateOne) sqlSave(ctx context.Context) (_node *Place, err error)
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(place.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedAt(); ok {
+		_spec.AddField(place.FieldUpdatedAt, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.PlaceID(); ok {
 		_spec.SetField(place.FieldPlaceID, field.TypeInt64, value)

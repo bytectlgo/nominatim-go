@@ -5,6 +5,7 @@ package ent
 import (
 	"nominatim-go/ent/addressrow"
 	"nominatim-go/ent/helloworld"
+	"nominatim-go/ent/place"
 	"nominatim-go/ent/schema"
 )
 
@@ -12,8 +13,21 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	addressrowMixin := schema.AddressRow{}.Mixin()
+	addressrowMixinFields0 := addressrowMixin[0].Fields()
+	_ = addressrowMixinFields0
 	addressrowFields := schema.AddressRow{}.Fields()
 	_ = addressrowFields
+	// addressrowDescCreatedAt is the schema descriptor for created_at field.
+	addressrowDescCreatedAt := addressrowMixinFields0[0].Descriptor()
+	// addressrow.DefaultCreatedAt holds the default value on creation for the created_at field.
+	addressrow.DefaultCreatedAt = addressrowDescCreatedAt.Default.(func() int64)
+	// addressrowDescUpdatedAt is the schema descriptor for updated_at field.
+	addressrowDescUpdatedAt := addressrowMixinFields0[1].Descriptor()
+	// addressrow.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	addressrow.DefaultUpdatedAt = addressrowDescUpdatedAt.Default.(func() int64)
+	// addressrow.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	addressrow.UpdateDefaultUpdatedAt = addressrowDescUpdatedAt.UpdateDefault.(func() int64)
 	// addressrowDescRank is the schema descriptor for rank field.
 	addressrowDescRank := addressrowFields[4].Descriptor()
 	// addressrow.DefaultRank holds the default value on creation for the rank field.
@@ -24,4 +38,19 @@ func init() {
 	helloworldDescName := helloworldFields[1].Descriptor()
 	// helloworld.DefaultName holds the default value on creation for the name field.
 	helloworld.DefaultName = helloworldDescName.Default.(string)
+	placeMixin := schema.Place{}.Mixin()
+	placeMixinFields0 := placeMixin[0].Fields()
+	_ = placeMixinFields0
+	placeFields := schema.Place{}.Fields()
+	_ = placeFields
+	// placeDescCreatedAt is the schema descriptor for created_at field.
+	placeDescCreatedAt := placeMixinFields0[0].Descriptor()
+	// place.DefaultCreatedAt holds the default value on creation for the created_at field.
+	place.DefaultCreatedAt = placeDescCreatedAt.Default.(func() int64)
+	// placeDescUpdatedAt is the schema descriptor for updated_at field.
+	placeDescUpdatedAt := placeMixinFields0[1].Descriptor()
+	// place.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	place.DefaultUpdatedAt = placeDescUpdatedAt.Default.(func() int64)
+	// place.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	place.UpdateDefaultUpdatedAt = placeDescUpdatedAt.UpdateDefault.(func() int64)
 }

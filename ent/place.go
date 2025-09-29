@@ -17,6 +17,10 @@ type Place struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// 创建时间,unix时间戳
+	CreatedAt int64 `json:"created_at,omitempty"`
+	// 更新时间,unix时间戳
+	UpdatedAt int64 `json:"updated_at,omitempty"`
 	// PlaceID holds the value of the "place_id" field.
 	PlaceID int64 `json:"place_id,omitempty"`
 	// Licence holds the value of the "licence" field.
@@ -86,7 +90,7 @@ func (*Place) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case place.FieldImportance, place.FieldLat, place.FieldLon, place.FieldBboxSouth, place.FieldBboxNorth, place.FieldBboxWest, place.FieldBboxEast:
 			values[i] = new(sql.NullFloat64)
-		case place.FieldID, place.FieldPlaceID:
+		case place.FieldID, place.FieldCreatedAt, place.FieldUpdatedAt, place.FieldPlaceID:
 			values[i] = new(sql.NullInt64)
 		case place.FieldLicence, place.FieldOsmID, place.FieldOsmType, place.FieldCategory, place.FieldType, place.FieldDisplayName, place.FieldIcon, place.FieldPolygonGeojson:
 			values[i] = new(sql.NullString)
@@ -111,6 +115,18 @@ func (_m *Place) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case place.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Int64
+			}
+		case place.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Int64
+			}
 		case place.FieldPlaceID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field place_id", values[i])
@@ -264,6 +280,12 @@ func (_m *Place) String() string {
 	var builder strings.Builder
 	builder.WriteString("Place(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("created_at=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreatedAt))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UpdatedAt))
+	builder.WriteString(", ")
 	builder.WriteString("place_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PlaceID))
 	builder.WriteString(", ")

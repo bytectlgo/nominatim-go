@@ -45,8 +45,16 @@ func (r *searchRepo) SearchPlaces(ctx context.Context, p biz.SearchParams) ([]*b
 		geoJSONSelect = "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')"
 	}
 
+	// DISTINCT ON 去重设置
+	distinctOn := ""
+	orderPrefix := ""
+	if p.Dedupe {
+		distinctOn = "DISTINCT ON (osm_type, osm_id)"
+		orderPrefix = "osm_type, osm_id, "
+	}
+
 	base := `
-SELECT
+SELECT ` + distinctOn + `
   place_id, osm_id, osm_type, class, type,
   COALESCE(name->'name','') AS name,
   COALESCE(ST_Y(centroid), 0) AS lat,
@@ -73,12 +81,29 @@ WHERE (name ? 'name') AND (name->'name' ILIKE $1)
 		}
 		base += " AND country_code IN (" + strings.Join(placeholders, ",") + ")"
 	}
+	// featuretype 过滤：支持 "class:type" 或单值（匹配 class 或 type）
+	if ft := strings.TrimSpace(p.FeatureType); ft != "" {
+		if i := strings.Index(ft, ":"); i >= 0 {
+			classVal := strings.TrimSpace(ft[:i])
+			typeVal := strings.TrimSpace(ft[i+1:])
+			base += " AND class = $" + strconv.Itoa(argIdx)
+			args = append(args, classVal)
+			argIdx++
+			base += " AND type = $" + strconv.Itoa(argIdx)
+			args = append(args, typeVal)
+			argIdx++
+		} else {
+			base += " AND (class = $" + strconv.Itoa(argIdx) + " OR type = $" + strconv.Itoa(argIdx) + ")"
+			args = append(args, ft)
+			argIdx++
+		}
+	}
 	if p.Bounded && (p.ViewBoxLeft != 0 || p.ViewBoxRight != 0 || p.ViewBoxTop != 0 || p.ViewBoxBottom != 0) {
 		base += " AND bbox && ST_MakeEnvelope($" + strconv.Itoa(argIdx) + ", $" + strconv.Itoa(argIdx+1) + ", $" + strconv.Itoa(argIdx+2) + ", $" + strconv.Itoa(argIdx+3) + ", 4326)"
 		args = append(args, p.ViewBoxLeft, p.ViewBoxBottom, p.ViewBoxRight, p.ViewBoxTop)
 		argIdx += 4
 	}
-	base += " ORDER BY importance DESC NULLS LAST LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
+	base += " ORDER BY " + orderPrefix + "importance DESC NULLS LAST, place_id DESC LIMIT $" + strconv.Itoa(argIdx) + " OFFSET $" + strconv.Itoa(argIdx+1)
 	args = append(args, p.Limit, p.Offset)
 
 	rows, err := db.QueryContext(ctx, base, args...)
@@ -239,7 +264,8 @@ SELECT place_id, osm_id, osm_type, class, type,
        COALESCE(hstore_to_json(extratags)::text, '{}') AS extratags_json,
        ` + "COALESCE(ST_AsGeoJSON(polygon, 6)::text, '')" + ` AS polygon_geojson
 FROM placex
-WHERE ` + strings.Join(parts, " OR ")
+WHERE ` + strings.Join(parts, " OR ") + `
+ORDER BY importance DESC NULLS LAST`
 
 	rows, err := db.QueryContext(ctx, q, args...)
 	if err != nil {

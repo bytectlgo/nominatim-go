@@ -54,6 +54,16 @@ func IDLTE(id int64) predicate.AddressRow {
 	return predicate.AddressRow(sql.FieldLTE(FieldID, id))
 }
 
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
 // Component applies equality check predicate on the "component" field. It's identical to ComponentEQ.
 func Component(v string) predicate.AddressRow {
 	return predicate.AddressRow(sql.FieldEQ(FieldComponent, v))
@@ -72,6 +82,86 @@ func AdminLevel(v uint32) predicate.AddressRow {
 // Rank applies equality check predicate on the "rank" field. It's identical to RankEQ.
 func Rank(v uint32) predicate.AddressRow {
 	return predicate.AddressRow(sql.FieldEQ(FieldRank, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v int64) predicate.AddressRow {
+	return predicate.AddressRow(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // ComponentEQ applies the EQ predicate on the "component" field.

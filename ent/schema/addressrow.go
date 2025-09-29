@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"nominatim-go/pkg/ent/mixins"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -9,6 +11,13 @@ import (
 // AddressRow 表示结果中的一条地址组成元素（对齐 proto）。
 type AddressRow struct {
 	ent.Schema
+}
+
+// Mixin returns mixin definitions.
+func (AddressRow) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixins.TimeMixin{},
+	}
 }
 
 // Fields of the AddressRow.

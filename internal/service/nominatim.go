@@ -4,6 +4,8 @@ import (
 	"context"
 	v1 "nominatim-go/api/nominatim/v1"
 	"nominatim-go/internal/biz"
+	"nominatim-go/internal/data"
+	"strings"
 	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -14,12 +16,13 @@ type NominatimService struct {
 	v1.UnimplementedNominatimServiceServer
 	log    *log.Helper
 	search *biz.SearchUsecase
+	data   *data.Data
 }
 
 var serviceStartTime = time.Now()
 
-func NewNominatimService(logger log.Logger, search *biz.SearchUsecase) *NominatimService {
-	return &NominatimService{log: log.NewHelper(logger), search: search}
+func NewNominatimService(logger log.Logger, search *biz.SearchUsecase, data *data.Data) *NominatimService {
+	return &NominatimService{log: log.NewHelper(logger), search: search, data: data}
 }
 
 func (s *NominatimService) Search(ctx context.Context, req *v1.SearchRequest) (*v1.SearchResponse, error) {
@@ -48,13 +51,12 @@ func (s *NominatimService) Search(ctx context.Context, req *v1.SearchRequest) (*
 	}
 	results := make([]*v1.Place, 0, len(items))
 	for _, it := range items {
-		results = append(results, mapPlace(it))
+		results = append(results, mapPlaceWithLocale(it, req.GetAcceptLanguage()))
 	}
 	return &v1.SearchResponse{Results: results}, nil
 }
 
 func (s *NominatimService) Reverse(ctx context.Context, req *v1.ReverseRequest) (*v1.ReverseResponse, error) {
-	s.log.WithContext(ctx).Infof("Reverse lat=%f lon=%f", req.GetLat(), req.GetLon())
 	it, err := s.search.Reverse(ctx, biz.ReverseParams{
 		Lat:              req.GetLat(),
 		Lon:              req.GetLon(),
@@ -72,11 +74,10 @@ func (s *NominatimService) Reverse(ctx context.Context, req *v1.ReverseRequest) 
 	if it == nil {
 		return &v1.ReverseResponse{}, nil
 	}
-	return &v1.ReverseResponse{Result: mapPlace(it)}, nil
+	return &v1.ReverseResponse{Result: mapPlaceWithLocale(it, req.GetAcceptLanguage())}, nil
 }
 
 func (s *NominatimService) Lookup(ctx context.Context, req *v1.LookupRequest) (*v1.LookupResponse, error) {
-	s.log.WithContext(ctx).Infof("Lookup ids=%v", req.GetOsmIds())
 	it, err := s.search.Lookup(ctx, biz.LookupParams{
 		OSMIDs:           req.GetOsmIds(),
 		AddressDetails:   req.GetAddressdetails(),
@@ -91,17 +92,25 @@ func (s *NominatimService) Lookup(ctx context.Context, req *v1.LookupRequest) (*
 	}
 	results := make([]*v1.Place, 0, len(it))
 	for _, p := range it {
-		results = append(results, mapPlace(p))
+		results = append(results, mapPlaceWithLocale(p, req.GetAcceptLanguage()))
 	}
 	return &v1.LookupResponse{Results: results}, nil
 }
 
 func (s *NominatimService) Status(ctx context.Context, _ *v1.StatusRequest) (*v1.StatusResponse, error) {
 	uptime := time.Since(serviceStartTime).Round(time.Second).String()
-	return &v1.StatusResponse{Version: "dev", DbStatus: "unknown", Uptime: uptime}, nil
+	dbStatus := "unknown"
+	if s.data != nil && s.data.SQLDB() != nil {
+		if err := s.data.SQLDB().PingContext(ctx); err == nil {
+			dbStatus = "ok"
+		} else {
+			dbStatus = "unavailable"
+		}
+	}
+	return &v1.StatusResponse{Version: "dev", DbStatus: dbStatus, Uptime: uptime}, nil
 }
 
-func mapPlace(it *biz.SearchPlace) *v1.Place {
+func mapPlaceWithLocale(it *biz.SearchPlace, acceptLanguage string) *v1.Place {
 	// address rows
 	addrRows := make([]*v1.AddressRow, 0, len(it.AddressRows))
 	for _, r := range it.AddressRows {
@@ -112,13 +121,29 @@ func mapPlace(it *biz.SearchPlace) *v1.Place {
 			Rank:       r.Rank,
 		})
 	}
+	// 选择 display name：优先 name:lang，其次 name
+	display := it.Name
+	langs := parseAcceptLanguages(acceptLanguage)
+	if len(langs) > 0 && len(it.NameDetails) > 0 {
+		for _, lang := range langs {
+			if v, ok := it.NameDetails["name:"+lang]; ok && v != "" {
+				display = v
+				break
+			}
+		}
+		if display == it.Name {
+			if v, ok := it.NameDetails["name"]; ok && v != "" {
+				display = v
+			}
+		}
+	}
 	return &v1.Place{
 		PlaceId:        it.PlaceID,
 		OsmId:          it.OSMID,
 		OsmType:        it.OSMType,
 		Category:       it.Category,
 		Type:           it.Type,
-		DisplayName:    it.Name,
+		DisplayName:    display,
 		Importance:     it.Importance,
 		Centroid:       &v1.Point{Lat: it.Lat, Lon: it.Lon},
 		Boundingbox:    &v1.BoundingBox{South: it.BBoxSouth, North: it.BBoxNorth, West: it.BBoxWest, East: it.BBoxEast},
@@ -127,4 +152,24 @@ func mapPlace(it *biz.SearchPlace) *v1.Place {
 		Extratags:      it.ExtraTags,
 		Namedetails:    it.NameDetails,
 	}
+}
+
+func parseAcceptLanguages(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	langs := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		// 取语言部分（去掉 ;q=）
+		if i := strings.Index(p, ";"); i >= 0 {
+			p = p[:i]
+		}
+		langs = append(langs, p)
+	}
+	return langs
 }

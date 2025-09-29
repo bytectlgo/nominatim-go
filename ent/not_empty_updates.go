@@ -4,6 +4,9 @@ package ent
 
 // set all field if value is not empty. e.g. string does not equal to ""
 func (_m *AddressRowUpdateOne) SetALLNotEmpty(v *AddressRow) *AddressRowUpdateOne {
+	if v.UpdatedAt != 0 {
+		_m.SetUpdatedAt(v.UpdatedAt)
+	}
 	if v.Component != "" {
 		_m.SetComponent(v.Component)
 	}
@@ -29,6 +32,9 @@ func (_m *HelloworldUpdateOne) SetALLNotEmpty(v *Helloworld) *HelloworldUpdateOn
 
 // set all field if value is not empty. e.g. string does not equal to ""
 func (_m *PlaceUpdateOne) SetALLNotEmpty(v *Place) *PlaceUpdateOne {
+	if v.UpdatedAt != 0 {
+		_m.SetUpdatedAt(v.UpdatedAt)
+	}
 	if v.PlaceID != 0 {
 		_m.SetPlaceID(v.PlaceID)
 	}

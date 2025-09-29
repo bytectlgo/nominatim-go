@@ -17,6 +17,10 @@ type AddressRow struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int64 `json:"id,omitempty"`
+	// 创建时间,unix时间戳
+	CreatedAt int64 `json:"created_at,omitempty"`
+	// 更新时间,unix时间戳
+	UpdatedAt int64 `json:"updated_at,omitempty"`
 	// Component holds the value of the "component" field.
 	Component string `json:"component,omitempty"`
 	// Name holds the value of the "name" field.
@@ -57,7 +61,7 @@ func (*AddressRow) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case addressrow.FieldID, addressrow.FieldAdminLevel, addressrow.FieldRank:
+		case addressrow.FieldID, addressrow.FieldCreatedAt, addressrow.FieldUpdatedAt, addressrow.FieldAdminLevel, addressrow.FieldRank:
 			values[i] = new(sql.NullInt64)
 		case addressrow.FieldComponent, addressrow.FieldName:
 			values[i] = new(sql.NullString)
@@ -84,6 +88,18 @@ func (_m *AddressRow) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int64(value.Int64)
+		case addressrow.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Int64
+			}
+		case addressrow.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Int64
+			}
 		case addressrow.FieldComponent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field component", values[i])
@@ -156,6 +172,12 @@ func (_m *AddressRow) String() string {
 	var builder strings.Builder
 	builder.WriteString("AddressRow(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("created_at=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreatedAt))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UpdatedAt))
+	builder.WriteString(", ")
 	builder.WriteString("component=")
 	builder.WriteString(_m.Component)
 	builder.WriteString(", ")

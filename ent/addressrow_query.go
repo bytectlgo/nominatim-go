@@ -301,12 +301,12 @@ func (_q *AddressRowQuery) WithPlace(opts ...func(*PlaceQuery)) *AddressRowQuery
 // Example:
 //
 //	var v []struct {
-//		Component string `json:"component,omitempty"`
+//		CreatedAt int64 `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.AddressRow.Query().
-//		GroupBy(addressrow.FieldComponent).
+//		GroupBy(addressrow.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *AddressRowQuery) GroupBy(field string, fields ...string) *AddressRowGroupBy {
@@ -324,11 +324,11 @@ func (_q *AddressRowQuery) GroupBy(field string, fields ...string) *AddressRowGr
 // Example:
 //
 //	var v []struct {
-//		Component string `json:"component,omitempty"`
+//		CreatedAt int64 `json:"created_at,omitempty"`
 //	}
 //
 //	client.AddressRow.Query().
-//		Select(addressrow.FieldComponent).
+//		Select(addressrow.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (_q *AddressRowQuery) Select(fields ...string) *AddressRowSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

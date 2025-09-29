@@ -29,6 +29,19 @@ func (_u *AddressRowUpdate) Where(ps ...predicate.AddressRow) *AddressRowUpdate 
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AddressRowUpdate) SetUpdatedAt(v int64) *AddressRowUpdate {
+	_u.mutation.ResetUpdatedAt()
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddUpdatedAt adds value to the "updated_at" field.
+func (_u *AddressRowUpdate) AddUpdatedAt(v int64) *AddressRowUpdate {
+	_u.mutation.AddUpdatedAt(v)
+	return _u
+}
+
 // SetComponent sets the "component" field.
 func (_u *AddressRowUpdate) SetComponent(v string) *AddressRowUpdate {
 	_u.mutation.SetComponent(v)
@@ -129,6 +142,7 @@ func (_u *AddressRowUpdate) ClearPlace() *AddressRowUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AddressRowUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -151,6 +165,14 @@ func (_u *AddressRowUpdate) Exec(ctx context.Context) error {
 func (_u *AddressRowUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *AddressRowUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := addressrow.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -179,6 +201,12 @@ func (_u *AddressRowUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(addressrow.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedAt(); ok {
+		_spec.AddField(addressrow.FieldUpdatedAt, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(addressrow.FieldComponent, field.TypeString, value)
@@ -250,6 +278,19 @@ type AddressRowUpdateOne struct {
 	hooks     []Hook
 	mutation  *AddressRowMutation
 	modifiers []func(*sql.UpdateBuilder)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AddressRowUpdateOne) SetUpdatedAt(v int64) *AddressRowUpdateOne {
+	_u.mutation.ResetUpdatedAt()
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddUpdatedAt adds value to the "updated_at" field.
+func (_u *AddressRowUpdateOne) AddUpdatedAt(v int64) *AddressRowUpdateOne {
+	_u.mutation.AddUpdatedAt(v)
+	return _u
 }
 
 // SetComponent sets the "component" field.
@@ -365,6 +406,7 @@ func (_u *AddressRowUpdateOne) Select(field string, fields ...string) *AddressRo
 
 // Save executes the query and returns the updated AddressRow entity.
 func (_u *AddressRowUpdateOne) Save(ctx context.Context) (*AddressRow, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -387,6 +429,14 @@ func (_u *AddressRowUpdateOne) Exec(ctx context.Context) error {
 func (_u *AddressRowUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *AddressRowUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := addressrow.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -432,6 +482,12 @@ func (_u *AddressRowUpdateOne) sqlSave(ctx context.Context) (_node *AddressRow, 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(addressrow.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedAt(); ok {
+		_spec.AddField(addressrow.FieldUpdatedAt, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(addressrow.FieldComponent, field.TypeString, value)

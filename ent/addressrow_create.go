@@ -22,6 +22,34 @@ type AddressRowCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (_c *AddressRowCreate) SetCreatedAt(v int64) *AddressRowCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *AddressRowCreate) SetNillableCreatedAt(v *int64) *AddressRowCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *AddressRowCreate) SetUpdatedAt(v int64) *AddressRowCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *AddressRowCreate) SetNillableUpdatedAt(v *int64) *AddressRowCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
 // SetComponent sets the "component" field.
 func (_c *AddressRowCreate) SetComponent(v string) *AddressRowCreate {
 	_c.mutation.SetComponent(v)
@@ -114,6 +142,14 @@ func (_c *AddressRowCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *AddressRowCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := addressrow.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := addressrow.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.Rank(); !ok {
 		v := addressrow.DefaultRank
 		_c.mutation.SetRank(v)
@@ -122,6 +158,12 @@ func (_c *AddressRowCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *AddressRowCreate) check() error {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "AddressRow.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "AddressRow.updated_at"`)}
+	}
 	if _, ok := _c.mutation.Component(); !ok {
 		return &ValidationError{Name: "component", err: errors.New(`ent: missing required field "AddressRow.component"`)}
 	}
@@ -167,6 +209,14 @@ func (_c *AddressRowCreate) createSpec() (*AddressRow, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(addressrow.FieldCreatedAt, field.TypeInt64, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(addressrow.FieldUpdatedAt, field.TypeInt64, value)
+		_node.UpdatedAt = value
+	}
 	if value, ok := _c.mutation.Component(); ok {
 		_spec.SetField(addressrow.FieldComponent, field.TypeString, value)
 		_node.Component = value
@@ -207,7 +257,7 @@ func (_c *AddressRowCreate) createSpec() (*AddressRow, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.AddressRow.Create().
-//		SetComponent(v).
+//		SetCreatedAt(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -216,7 +266,7 @@ func (_c *AddressRowCreate) createSpec() (*AddressRow, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.AddressRowUpsert) {
-//			SetComponent(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *AddressRowCreate) OnConflict(opts ...sql.ConflictOption) *AddressRowUpsertOne {
@@ -251,6 +301,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *AddressRowUpsert) SetUpdatedAt(v int64) *AddressRowUpsert {
+	u.Set(addressrow.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *AddressRowUpsert) UpdateUpdatedAt() *AddressRowUpsert {
+	u.SetExcluded(addressrow.FieldUpdatedAt)
+	return u
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *AddressRowUpsert) AddUpdatedAt(v int64) *AddressRowUpsert {
+	u.Add(addressrow.FieldUpdatedAt, v)
+	return u
+}
 
 // SetComponent sets the "component" field.
 func (u *AddressRowUpsert) SetComponent(v string) *AddressRowUpsert {
@@ -335,6 +403,9 @@ func (u *AddressRowUpsertOne) UpdateNewValues() *AddressRowUpsertOne {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(addressrow.FieldID)
 		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(addressrow.FieldCreatedAt)
+		}
 	}))
 	return u
 }
@@ -364,6 +435,27 @@ func (u *AddressRowUpsertOne) Update(set func(*AddressRowUpsert)) *AddressRowUps
 		set(&AddressRowUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *AddressRowUpsertOne) SetUpdatedAt(v int64) *AddressRowUpsertOne {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *AddressRowUpsertOne) AddUpdatedAt(v int64) *AddressRowUpsertOne {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.AddUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *AddressRowUpsertOne) UpdateUpdatedAt() *AddressRowUpsertOne {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.UpdateUpdatedAt()
+	})
 }
 
 // SetComponent sets the "component" field.
@@ -578,7 +670,7 @@ func (_c *AddressRowCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.AddressRowUpsert) {
-//			SetComponent(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *AddressRowCreateBulk) OnConflict(opts ...sql.ConflictOption) *AddressRowUpsertBulk {
@@ -625,6 +717,9 @@ func (u *AddressRowUpsertBulk) UpdateNewValues() *AddressRowUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(addressrow.FieldID)
 			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(addressrow.FieldCreatedAt)
+			}
 		}
 	}))
 	return u
@@ -655,6 +750,27 @@ func (u *AddressRowUpsertBulk) Update(set func(*AddressRowUpsert)) *AddressRowUp
 		set(&AddressRowUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *AddressRowUpsertBulk) SetUpdatedAt(v int64) *AddressRowUpsertBulk {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *AddressRowUpsertBulk) AddUpdatedAt(v int64) *AddressRowUpsertBulk {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.AddUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *AddressRowUpsertBulk) UpdateUpdatedAt() *AddressRowUpsertBulk {
+	return u.Update(func(s *AddressRowUpsert) {
+		s.UpdateUpdatedAt()
+	})
 }
 
 // SetComponent sets the "component" field.

@@ -22,6 +22,12 @@ alwaysApply: true
 
 ```
 
+## ent schema
+
+- 定义好后可以使用`make genarate` 生成代码测试.
+- 更新和创建时间尽量直接引用pkg/ent/mixins中定义好的.
+- 根据ent schema, 项目可以生成internal的代码参考, 执行: `entbiz  -s ./ent/schema -o ./gen-internal -p 项目的名字` 进行生成, 生成后代码在`gen-internal`目录中可以供参考实现proto,service, biz, data 层的定义, 可以直接拷贝到每个文件到`internal`中进行优化,完善,优先参考这个生成代码, 然后在实现对应的`internal`中的业务
+
 ## API 约定
 
 - proto
@@ -31,11 +37,6 @@ alwaysApply: true
   - 使用`buf/validate/validate.proto"` 定义proto时, 加上对应字段校验规则.
   - proto的结构体字段注释需要放字段上方,尽量保证每个字段都有注释,尽量是中文注释
   - 定义好后可以使用`make api` 进行生成代码测试
-
-## ent schema
-
-- 定义好后可以使用`make genarate` 生成代码测试.
-- 更新和创建时间尽量直接引用pkg/ent/mixins中定义好的.
 
 ## biz
 

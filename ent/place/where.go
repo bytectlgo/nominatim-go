@@ -54,6 +54,16 @@ func IDLTE(id int) predicate.Place {
 	return predicate.Place(sql.FieldLTE(FieldID, id))
 }
 
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v int64) predicate.Place {
+	return predicate.Place(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v int64) predicate.Place {
+	return predicate.Place(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
 // PlaceID applies equality check predicate on the "place_id" field. It's identical to PlaceIDEQ.
 func PlaceID(v int64) predicate.Place {
 	return predicate.Place(sql.FieldEQ(FieldPlaceID, v))
@@ -132,6 +142,86 @@ func Icon(v string) predicate.Place {
 // PolygonGeojson applies equality check predicate on the "polygon_geojson" field. It's identical to PolygonGeojsonEQ.
 func PolygonGeojson(v string) predicate.Place {
 	return predicate.Place(sql.FieldEQ(FieldPolygonGeojson, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v int64) predicate.Place {
+	return predicate.Place(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v int64) predicate.Place {
+	return predicate.Place(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...int64) predicate.Place {
+	return predicate.Place(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...int64) predicate.Place {
+	return predicate.Place(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v int64) predicate.Place {
+	return predicate.Place(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v int64) predicate.Place {
+	return predicate.Place(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v int64) predicate.Place {
+	return predicate.Place(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v int64) predicate.Place {
+	return predicate.Place(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v int64) predicate.Place {
+	return predicate.Place(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v int64) predicate.Place {
+	return predicate.Place(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...int64) predicate.Place {
+	return predicate.Place(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...int64) predicate.Place {
+	return predicate.Place(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v int64) predicate.Place {
+	return predicate.Place(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v int64) predicate.Place {
+	return predicate.Place(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v int64) predicate.Place {
+	return predicate.Place(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v int64) predicate.Place {
+	return predicate.Place(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // PlaceIDEQ applies the EQ predicate on the "place_id" field.

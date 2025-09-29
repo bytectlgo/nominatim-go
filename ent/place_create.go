@@ -22,6 +22,34 @@ type PlaceCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (_c *PlaceCreate) SetCreatedAt(v int64) *PlaceCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *PlaceCreate) SetNillableCreatedAt(v *int64) *PlaceCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *PlaceCreate) SetUpdatedAt(v int64) *PlaceCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *PlaceCreate) SetNillableUpdatedAt(v *int64) *PlaceCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
 // SetPlaceID sets the "place_id" field.
 func (_c *PlaceCreate) SetPlaceID(v int64) *PlaceCreate {
 	_c.mutation.SetPlaceID(v)
@@ -240,6 +268,7 @@ func (_c *PlaceCreate) Mutation() *PlaceMutation {
 
 // Save creates the Place in the database.
 func (_c *PlaceCreate) Save(ctx context.Context) (*Place, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -265,8 +294,26 @@ func (_c *PlaceCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *PlaceCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := place.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := place.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *PlaceCreate) check() error {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Place.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Place.updated_at"`)}
+	}
 	if _, ok := _c.mutation.PlaceID(); !ok {
 		return &ValidationError{Name: "place_id", err: errors.New(`ent: missing required field "Place.place_id"`)}
 	}
@@ -309,6 +356,14 @@ func (_c *PlaceCreate) createSpec() (*Place, *sqlgraph.CreateSpec) {
 		_spec = sqlgraph.NewCreateSpec(place.Table, sqlgraph.NewFieldSpec(place.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(place.FieldCreatedAt, field.TypeInt64, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(place.FieldUpdatedAt, field.TypeInt64, value)
+		_node.UpdatedAt = value
+	}
 	if value, ok := _c.mutation.PlaceID(); ok {
 		_spec.SetField(place.FieldPlaceID, field.TypeInt64, value)
 		_node.PlaceID = value
@@ -404,7 +459,7 @@ func (_c *PlaceCreate) createSpec() (*Place, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Place.Create().
-//		SetPlaceID(v).
+//		SetCreatedAt(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -413,7 +468,7 @@ func (_c *PlaceCreate) createSpec() (*Place, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.PlaceUpsert) {
-//			SetPlaceID(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *PlaceCreate) OnConflict(opts ...sql.ConflictOption) *PlaceUpsertOne {
@@ -448,6 +503,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PlaceUpsert) SetUpdatedAt(v int64) *PlaceUpsert {
+	u.Set(place.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PlaceUpsert) UpdateUpdatedAt() *PlaceUpsert {
+	u.SetExcluded(place.FieldUpdatedAt)
+	return u
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *PlaceUpsert) AddUpdatedAt(v int64) *PlaceUpsert {
+	u.Add(place.FieldUpdatedAt, v)
+	return u
+}
 
 // SetPlaceID sets the "place_id" field.
 func (u *PlaceUpsert) SetPlaceID(v int64) *PlaceUpsert {
@@ -801,6 +874,11 @@ func (u *PlaceUpsert) ClearPolygonGeojson() *PlaceUpsert {
 //		Exec(ctx)
 func (u *PlaceUpsertOne) UpdateNewValues() *PlaceUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(place.FieldCreatedAt)
+		}
+	}))
 	return u
 }
 
@@ -829,6 +907,27 @@ func (u *PlaceUpsertOne) Update(set func(*PlaceUpsert)) *PlaceUpsertOne {
 		set(&PlaceUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PlaceUpsertOne) SetUpdatedAt(v int64) *PlaceUpsertOne {
+	return u.Update(func(s *PlaceUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *PlaceUpsertOne) AddUpdatedAt(v int64) *PlaceUpsertOne {
+	return u.Update(func(s *PlaceUpsert) {
+		s.AddUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PlaceUpsertOne) UpdateUpdatedAt() *PlaceUpsertOne {
+	return u.Update(func(s *PlaceUpsert) {
+		s.UpdateUpdatedAt()
+	})
 }
 
 // SetPlaceID sets the "place_id" field.
@@ -1282,6 +1381,7 @@ func (_c *PlaceCreateBulk) Save(ctx context.Context) ([]*Place, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PlaceMutation)
 				if !ok {
@@ -1364,7 +1464,7 @@ func (_c *PlaceCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.PlaceUpsert) {
-//			SetPlaceID(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *PlaceCreateBulk) OnConflict(opts ...sql.ConflictOption) *PlaceUpsertBulk {
@@ -1403,6 +1503,13 @@ type PlaceUpsertBulk struct {
 //		Exec(ctx)
 func (u *PlaceUpsertBulk) UpdateNewValues() *PlaceUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(place.FieldCreatedAt)
+			}
+		}
+	}))
 	return u
 }
 
@@ -1431,6 +1538,27 @@ func (u *PlaceUpsertBulk) Update(set func(*PlaceUpsert)) *PlaceUpsertBulk {
 		set(&PlaceUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PlaceUpsertBulk) SetUpdatedAt(v int64) *PlaceUpsertBulk {
+	return u.Update(func(s *PlaceUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// AddUpdatedAt adds v to the "updated_at" field.
+func (u *PlaceUpsertBulk) AddUpdatedAt(v int64) *PlaceUpsertBulk {
+	return u.Update(func(s *PlaceUpsert) {
+		s.AddUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PlaceUpsertBulk) UpdateUpdatedAt() *PlaceUpsertBulk {
+	return u.Update(func(s *PlaceUpsert) {
+		s.UpdateUpdatedAt()
+	})
 }
 
 // SetPlaceID sets the "place_id" field.
