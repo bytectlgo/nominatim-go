@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=kratos_root_pwd
+      - MYSQL_DATABASE=kratos
+      - MYSQL_USER=kratos
+      - MYSQL_PASSWORD=kratos_pwd
+      - TZ=Asia/Shanghai
+    command:
+      [
+        "mysqld",
+        "--default-authentication-plugin=mysql_native_password",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+      ]
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+
+  kratos:
+    image: kratos:latest
+    container_name: kratos-app
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    volumes:
+      - ./configs:/app/configs
+      - ./kratos:/usr/lib/kratos
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - kratos
+networks:
+  kratos:
+    driver: bridge

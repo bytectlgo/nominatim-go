@@ -1,0 +1,25 @@
+version: v2
+clean: true
+plugins:
+  - local: ./web/node_modules/.bin/protoc-gen-es
+    out: web/src/api/gen
+    opt:
+      - target=ts
+  - local: protoc-gen-es-http
+    out: web/src/api/gen
+inputs:
+  - directory: .
+    paths:
+      - proto/helloworld
+  - module: buf.build/googleapis/googleapis
+    paths:
+      - google/api
+      - google/rpc
+  - module: buf.build/bufbuild/protovalidate
+    paths:
+      - buf/validate/validate.proto
+  # - module: buf.build/grpc-ecosystem/grpc-gateway
+# managed:
+#   enabled: true
+# disable:
+#   - module:  buf.build/bufbuild/protovalidate

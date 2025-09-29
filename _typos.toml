@@ -1,0 +1,20 @@
+# Typo check: https://github.com/crate-ci/typos
+[default]
+
+[default.extend-words]
+Payed = "Payed"
+Vertext = "Vertext"
+UDID = "UDID"
+typ ="typ"
+udo = "udo"
+
+[files]
+extend-exclude = [
+  "go.mod",
+  "go.sum",
+  "check_branch_name.sh",
+  "*.pb.go",
+  "**/*.pb.go",
+  "*.pb.ts",
+  "**/*_pb.ts",
+]

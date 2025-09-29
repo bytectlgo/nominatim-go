@@ -1,0 +1,14 @@
+[Unit]
+Description=kratos Service 
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/kratos -conf /etc/kratos
+Restart=on-failure
+RestartSec=3
+User=root
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,46 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# 项目规则
+
+## 项目结构
+
+```bash
+├── proto  //下面存放当前项目的接口proto文件
+├── api // 下面维护了根据proto文件所生成的go文件
+├── cmd  // 整个项目启动的入口文件
+│   └── server
+│       ├── wire.go  // 我们使用wire来维护依赖注入
+├── configs  // 这里通常维护一些本地调试用的样例配置文件
+│   └── config.yaml
+├── internal  // 该服务所有不对外暴露的代码，通常的业务逻辑都在这下面，使用internal避免错误引用
+│   ├── biz   // 业务逻辑的组装层，类似 DDD 的 domain 层，data 类似 DDD 的 repo，而 repo 接口在这里定义，使用依赖倒置的原则。这里不能直接使用api的结构体定义.api定义的结构体应该在service转换为biz层的结构体. 
+│   ├── conf  // 内部使用的config的结构定义，使用proto格式生成
+│   ├── data  // 业务数据访问，包含 cache、db 等封装，实现了 biz 的 repo 接口。我们会把 data 与 dao 混淆在一起，data 偏重业务的含义，它所要做的是将领域对象重新拿出来，我们去掉了 DDD 的 infra层。
+│   ├── server  // http和grpc实例的创建和配置
+│   └── service  // 实现了 api 定义的服务层，类似 DDD 的 application 层，处理 DTO 到 biz 领域实体的转换(DTO -> DO)，同时协同各类 biz 交互，但是不应处理复杂逻辑
+
+```
+
+## API 约定
+
+- proto
+  - api：通信以 HTTP/gRPC 为基础，使用 Protobuf 定义。默认仅生成 gRPC 代码；如需生成 HTTP 代码，请在 proto 中添加 `option (google.api.http)` 的映射再生成。
+  - 逃生门：若有文件上传或无法很好用 proto 表达的自由 JSON 结构，可在 Protobuf 体系外定义常规 `http.Handler` 并挂载到路由。
+  - errors：使用 Protobuf Enum 定义错误码，并通过工具生成判定接口。
+
+## 元信息传递
+
+服务间调用如需传递非业务载荷的元信息（不放入 payload），使用 `Metadata` 包进行设置与提取。
+
+## 错误处理
+
+使用 Kratos `errors` 模块封装错误，并优先采用框架预置标准错误。设计理念：
+
+- code：语义近似 HTTP Status Code（如参数错误用 400），在 HTTP 接口中同时作为 HTTP Code。利于网关基于 code 进行重试、限流、熔断等策略。
+- reason：业务具体错误码，简洁可读的字符串，同一服务内应唯一。
+- message：用户可读信息，面向 App/浏览器等直接展示。
+- metadata：补充信息的容器，用于携带附加上下文。

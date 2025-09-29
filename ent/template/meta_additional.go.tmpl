@@ -1,0 +1,13 @@
+{{/* gotype: entgo.io/ent/entc/gen.Graph */}}
+
+{{ define "meta/additional/random" }}
+    // 结构体字段转表字段map
+	var StructToFieldMap = map[string]string {
+		{{- if $.HasOneFieldID }}
+			 "{{camel $.ID.Name}}": Field{{ $.ID.StructField }},
+		{{- end }}
+		{{- range $f := $.Fields }}
+			"{{camel $f.Name}}": Field{{ $f.StructField }},
+		{{- end }}
+	}
+{{ end }}
